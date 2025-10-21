@@ -64,7 +64,18 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
       <UAuthForm
         :schema="schema" title="Login" description="Enter your credentials to access your account."
         icon="i-lucide-user" :fields="fields" :providers="providers" @submit="onSubmit"
-      />
+      >
+        <!-- Footer slot: add custom buttons -->
+        <template #footer>
+          <div class="flex justify-between items-center mt-2 cursor:pointer">
+            <button type="button" class="text-sm text-gray-500 hover:underline" @click="router.push('/sign-up')">
+              Sign Up
+            </button>
+
+            <!-- The original continue/submit button will remain -->
+          </div>
+        </template>
+      </UAuthForm>
     </UPageCard>
   </div>
 </template>
