@@ -2,71 +2,72 @@
 const testimonials = ref([
   {
     user: {
-      name: "Evan You",
-      description: "Author of Vue.js and Vite",
+      name: "Gordon Ramsay",
+      description: "Celebrity Chef",
       avatar: {
-        src: "https://avatars.githubusercontent.com/u/499550?v=4",
-        alt: "Evan You",
+        src: "https://upload.wikimedia.org/wikipedia/commons/3/3f/Gordon_Ramsay.jpg",
+        alt: "Gordon Ramsay",
       },
     },
-    quote: "Nuxt on Cloudflare infra with minimal effort - this is huge!",
+    quote: "These recipes are amazing! Perfect for both beginners and professional chefs.",
   },
   {
     user: {
-      name: "Igor Minar",
-      description: "Software Engineer at Cloudflare",
+      name: "Selam Fikir",
+      description: "Ethiopian Home Cook",
       avatar: {
-        src: "https://avatars.githubusercontent.com/u/216296?v=4",
-        alt: "Igor Minar",
+        src: "https://randomuser.me/api/portraits/women/68.jpg",
+        alt: "Selam Fikir",
       },
     },
-    quote: "I love the polish and the batteries-included approach. NuxtHub takes web framework and hosting integration to a new level!",
+    quote: "I love how these recipes help me recreate traditional Ethiopian dishes easily at home.",
   },
   {
     user: {
-      name: "Charlie Hield",
-      description: "Senior Creative Technologist",
+      name: "Jamie Oliver",
+      description: "Chef & Cookbook Author",
       avatar: {
-        src: "https://avatars.githubusercontent.com/u/527849?v=4",
-        alt: "Charlie Hield",
+        src: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Jamie_Oliver_2009.jpg",
+        alt: "Jamie Oliver",
       },
     },
-    quote: "NuxtHub is hands down the easiest way to get a project from zero to production on the Cloudflare stack!",
+    quote: "I love how these recipes make cooking healthy meals so easy and enjoyable.",
   },
   {
     user: {
-      name: "Israel Ortuño",
-      description: "Co-founder of VueJobs",
+      name: "Mekdes Alemu",
+      description: "Ethiopian Food Blogger",
       avatar: {
-        src: "https://avatars.githubusercontent.com/u/1769417?v=4",
-        alt: "Israel Ortuño",
+        src: "https://randomuser.me/api/portraits/women/72.jpg",
+        alt: "Mekdes Alemu",
       },
     },
-    quote: "I can't find an excuse to not go full-stack with Nuxt from now on. Ship fast the Nuxt way, zero config. Just plug & deploy.",
+    quote: "I enjoy sharing these recipes with friends and family; they bring authentic flavors to the table.",
   },
   {
     user: {
-      name: "Fayaz Ahmed",
-      description: "Indie Hacker",
+      name: "Massimo Bottura",
+      description: "Chef at Osteria Francescana",
       avatar: {
-        src: "https://avatars.githubusercontent.com/u/15716057?v=4",
-        alt: "Fayaz Ahmed",
+        src: "https://upload.wikimedia.org/wikipedia/commons/5/51/Massimo_Bottura_2018.jpg",
+        alt: "Massimo Bottura",
       },
     },
-    quote: "Took me less than 90 seconds to deploy an app with DB, KV, File storage and Caching, all on the edge with just a single command.",
+    quote: "The flavors are thoughtfully explained. These recipes inspire creativity in the kitchen.",
   },
   {
     user: {
-      name: "Tommy J. Vedvik",
-      description: "UX Developer",
+      name: "Daniel Tesfaye",
+      description: "Ethiopian Chef",
       avatar: {
-        src: "https://avatars.githubusercontent.com/u/48070?v=4",
-        alt: "Tommy J. Vedvik",
+        src: "https://randomuser.me/api/portraits/men/65.jpg",
+        alt: "Daniel Tesfaye",
       },
     },
-    quote: "Nuxt is becoming the best framework for bootstrappers imo. NuxtHub is a layer on top of Cloudflare services for cheap & fast full-stack edge hosting.",
+    quote: "These recipes are a great way to introduce Ethiopian cuisine to the world.",
   },
 ]);
+
 const items = [
   "images/food.webp",
   "images/food2.webp",
