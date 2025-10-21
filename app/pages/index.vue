@@ -103,7 +103,7 @@ const links = ref([
   },
   {
     label: "Learn Cooking Tips",
-    to: "/learn",
+    to: "/chiefs",
     color: "neutral",
     variant: "subtle",
     trailingIcon: "i-lucide-arrow-right",
