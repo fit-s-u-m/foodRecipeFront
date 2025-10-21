@@ -109,6 +109,19 @@ const links = ref([
     trailingIcon: "i-lucide-arrow-right",
   },
 ]);
+const query = gql`
+query GetPerson {
+  person {
+    name
+    age
+    id
+  }
+}
+
+`;
+const variables = { limit: 5 };
+
+const { data } = await useAsyncQuery(query, variables);
 </script>
 
 <template>
@@ -120,6 +133,9 @@ const links = ref([
     >
       <img src="/images/food.webp" alt="Tasty homemade recipe" class="rounded-lg shadow-2xl ring ring-default">
     </UPageHero>
+    <div class="flex justify-center items-center">
+      <p>Testing Hasura Name: {{ data.person[0].name }}</p>
+    </div>
 
     <UCarousel
       ref="carousel" v-slot="{ item }" arrows :items="items" :prev="{ onClick: onClickPrev }"
