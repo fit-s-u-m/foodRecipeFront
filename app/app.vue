@@ -1,5 +1,9 @@
 <template>
-  <div class=" font-bold text-2xl underline ">
-    Hello world
+  <div>
+    <NuxtLayout>
+      <UApp>
+        <NuxtPage />
+      </UApp>
+    </NuxtLayout>
   </div>
 </template>
