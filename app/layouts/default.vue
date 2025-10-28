@@ -63,7 +63,10 @@ const groups = ref([
         <UDashboardSearchButton label=" Search chefs / recipes" class="h-fit rounded-2xl" />
         <UNavigationMenu v-model="active" highlight highlight-color="primary" color="secondary" :items="items" />
 
-        <UColorModeSwitch />
+        <div class="flex gap-5 ">
+          <UColorModeSwitch />
+          userName
+        </div>
 
         <UDashboardSearch
           v-model:search-term="searchTerm" shortcut="meta_k" :groups="groups" :color-mode="false"

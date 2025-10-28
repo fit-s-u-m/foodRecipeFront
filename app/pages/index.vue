@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ButtonProps } from "@nuxt/ui";
+
 const testimonials = ref([
   {
     user: {
@@ -95,33 +97,22 @@ function select(index: number) {
   carousel.value?.emblaApi?.scrollTo(index);
 }
 
-const links = ref([
+const links: ButtonProps[] = [
   {
     label: "Browse Recipes",
     to: "/recipes",
     icon: "i-lucide-book-open",
+    color: "primary",
+    variant: "subtle",
   },
   {
     label: "Learn Cooking Tips",
     to: "/chiefs",
-    color: "neutral",
+    color: "primary",
     variant: "subtle",
     trailingIcon: "i-lucide-arrow-right",
   },
-]);
-const query = gql`
-query GetPerson {
-  person {
-    name
-    age
-    id
-  }
-}
-
-`;
-const variables = { limit: 5 };
-
-const { data } = await useAsyncQuery(query, variables);
+];
 </script>
 
 <template>
@@ -133,10 +124,6 @@ const { data } = await useAsyncQuery(query, variables);
     >
       <img src="/images/food.webp" alt="Tasty homemade recipe" class="rounded-lg shadow-2xl ring ring-default">
     </UPageHero>
-    <div class="flex justify-center items-center">
-      <p>Testing Hasura Name: {{ data.person[0].name }}</p>
-    </div>
-
     <UCarousel
       ref="carousel" v-slot="{ item }" arrows :items="items" :prev="{ onClick: onClickPrev }"
       :next="{ onClick: onClickNext }" auto-scroll class="w-full max-w-xs mx-auto" @select="onSelect"

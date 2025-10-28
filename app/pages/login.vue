@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type { AuthFormField, FormSubmitEvent } from "@nuxt/ui";
 
+import { useMutation } from "@vue/apollo-composable";
 import { useRouter } from "#app";
+import { gql } from "graphql-tag";
 import * as z from "zod";
 
 definePageMeta({
   layout: false, // disables the default layout
+  auth: false,
 });
 
 const toast = useToast();
@@ -52,9 +55,42 @@ const router = useRouter();
 function onSubmit(payload: FormSubmitEvent<Schema>) {
   const email = payload.data.email;
   const password = payload.data.password;
-  const encoded = btoa(`${email}:${password}`);
-  localStorage.setItem("token", encoded);
-  router.push("/");
+  const query = gql`
+    mutation Login($email: String!, $password: String!) {
+      Login(credential: { email: $email, password: $password }) {
+        userId
+        accessToken
+        refreshToken
+      }
+    }
+  `;
+
+  const variables = { email, password };
+
+  const config = useRuntimeConfig();
+  const adminSecret = config.public.hasuraAdminSecret;
+  const { mutate, onDone, onError } = useMutation(query, {
+    variables,
+    context: {
+      headers: {
+        "x-hasura-admin-secret": adminSecret,
+      },
+    },
+  });
+  mutate({ email, password });
+  onDone((payload) => {
+    console.log(payload.data.Login);
+    const accessToken = payload.data.Login.accessToken;
+    const refreshToken = payload.data.Login.refreshToken;
+    const userId = payload.data.Login.userId;
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.setItem("userId", userId);
+    navigateTo(("/"));
+  });
+  onError((err) => {
+    console.error(err);
+  });
 }
 </script>
 

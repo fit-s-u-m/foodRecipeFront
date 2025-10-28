@@ -1,5 +1,5 @@
 import tailwindcss from "@tailwindcss/vite";
-// https://nuxt.com/docs/api/configuration/nuxt-config
+
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
@@ -8,10 +8,15 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
   },
+  runtimeConfig: {
+    hasuraAdminSecret: process.env.HASURA_ADMIN_SECRET, // server-only
+    public: {
+      hasuraAdminSecret: process.env.HASURA_ADMIN_SECRET, // exposed to client
+    },
+  },
   apollo: {
     clients: {
       default: {
-        // httpEndpoint: "http://localhost:3000",
         httpEndpoint: "http://localhost:8080/v1/graphql",
       },
     },
