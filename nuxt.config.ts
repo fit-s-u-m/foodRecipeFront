@@ -18,6 +18,11 @@ export default defineNuxtConfig({
     clients: {
       default: {
         httpEndpoint: "http://localhost:8080/v1/graphql",
+        httpLinkOptions: {
+          headers: {
+            "x-hasura-admin-secret": process.env.HASURA_ADMIN_SECRET, // only on server
+          },
+        },
       },
     },
   },

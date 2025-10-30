@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { ButtonProps } from "@nuxt/ui";
 
+import { GET_USER_BY_ID } from "~/graphql/queries";
+
 const testimonials = ref([
   {
     user: {

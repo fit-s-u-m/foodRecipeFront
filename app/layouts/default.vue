@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
+import { GET_USER_BY_ID } from "~/graphql/queries";
+
 const items = ref([
   { label: "Home", icon: "i-lucide-home", to: "/" },
   { label: "Recipes", icon: "i-lucide-utensils", to: "/recipes" },
@@ -58,9 +60,42 @@ function checkScreen() {
   isMobile.value = window.innerWidth < 768; // e.g., Tailwind md breakpoint
 }
 
+interface User {
+  id: string;
+  username: string;
+  avatar_url: string;
+  bio: string;
+  email: string;
+  display_name: string;
+  created_at: string;
+}
+const user = ref<User | null>(null);
+const userLoading = ref(true);
+
 onMounted(() => {
   checkScreen();
   window.addEventListener("resize", checkScreen);
+
+  const userId = localStorage.getItem("userId") || "";
+  const shouldSkip = !userId || userId === "";
+  console.log(userId);
+
+  const { result, loading: queryLoading } = useQuery(GET_USER_BY_ID, {
+    userId,
+    skip: shouldSkip, // ⬅️ The key change: Skip if userId is null/empty
+  });
+
+  watch(queryLoading, () => {
+    if (!queryLoading.value) {
+      user.value = result.value.users[0];
+      console.log("userId", user.value);
+      userLoading.value = false;
+    }
+  });
+  if (shouldSkip) {
+    userLoading.value = false;
+    console.log("No userId found, skipping query.");
+  }
 });
 
 onUnmounted(() => {
@@ -84,7 +119,10 @@ const showSearch = ref(false);
 
         <div class="flex gap-5  items-center">
           <UColorModeSwitch />
-          <UAvatar src="https://github.com/benjamincanac.png" alt="Benjamin Canac" size="2xl" />
+          <UAvatar
+            :src="user && user.avatar_url ? user.avatar_url : ''"
+            :alt="user && user.username ? user.username.toUpperCase() : ''" size="xl"
+          />
         </div>
 
         <UDashboardSearch
