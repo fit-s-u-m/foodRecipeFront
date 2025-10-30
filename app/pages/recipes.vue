@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import type { FormSubmitEvent } from "@nuxt/ui";
+
+import { toast } from "#build/ui";
 import { ref } from "vue";
+import * as z from "zod";
 
 // in any page or composable
 import { CREATE_RECIPE, GET_RECIPES } from "~/graphql/queries";
@@ -210,6 +214,64 @@ const recipesAll = computed(() => {
 });
 
 console.log({ recipesAll });
+const addRecipeModal = ref(false);
+const addStepModal = ref(false);
+const schema = z.object({
+  time: z.number().min(1, "Time is required").max(300, "Too long"),
+  image: z.url("Must be a valid URL"),
+});
+const newStep = ref("");
+
+type Schema = z.output<typeof schema>;
+const steps = ref<string[]>([]);
+interface ImagePreview {
+  file: File;
+  preview: string;
+}
+
+const images = ref<ImagePreview[]>([]);
+
+const state = reactive({
+  time: undefined as number | undefined,
+  images: [] as File[],
+
+});
+function handleImagesUpload(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const files = target.files;
+  if (!files)
+    return;
+
+  for (const file of Array.from(files)) {
+    const preview = URL.createObjectURL(file);
+    images.value.push({ file, preview });
+  }
+
+  console.log(images.value);
+}
+
+function onSubmit(event: Event) {
+  event.preventDefault();
+  // console.log("Time:", state.time);
+  // console.log("Images:", state.images);
+  // console.log("Image previews (browser URLs):", previews.value);
+
+  alert("Recipe submitted! Check console for image data.");
+}
+function removeImage(index: number) {
+  images.value.splice(index, 1);
+}
+
+function addStep() {
+  if (newStep.value.trim() !== "") {
+    steps.value.push(newStep.value.trim());
+    newStep.value = "";
+    addStepModal.value = false;
+  }
+}
+function removeStep(index: number) {
+  steps.value.splice(index, 1);
+}
 </script>
 
 <template>
@@ -218,9 +280,75 @@ console.log({ recipesAll });
       <h1 class="text-3xl font-bold">
         🍽️ Delicious Recipes
       </h1>
-      <UButton color="primary" @click="isRecipeModalOpen = true">
-        + Add Recipe
-      </UButton>
+      <UModal v-model:open="addRecipeModal" title="Add Recipes" :ui="{ footer: 'justify-end' }">
+        <UButton color="primary" label="+ Add Recipe" />
+        <template #body>
+          <UForm :schema="schema" :state="state" class="space-y-4" @submit="onSubmit">
+            <UFormField label="Time it talkes in minite" name="time">
+              <UInput v-model="state.time" type="number" />
+            </UFormField>
+
+            <UFormField label="Images" name="images">
+              <UInput type="file" multiple accept="image/*" @change="handleImagesUpload" />
+            </UFormField>
+            <div class="flex flex-col gap-3 mt-3">
+              <!-- Image Preview -->
+              <div v-if="images.length" class="grid grid-cols-3 gap-2">
+                <div v-for="(img, i) in images" :key="i" class="relative group">
+                  <img
+                    :src="img.preview" alt="Preview"
+                    class="w-full h-32 object-cover rounded-xl border border-gray-200"
+                  >
+                  <button
+                    class="absolute top-1 right-1 bg-red-500 text-white  w-6 h-6 rounded-sm  opacity-0 group-hover:opacity-100 transition"
+                    @click.prevent="removeImage(i)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between items-center">
+                  <label class="font-semibold">Steps</label>
+                  <UButton
+                    size="xs" color="neutral" variant="outline" class="cursor-pointer"
+                    @click="addStepModal = true"
+                  >
+                    + Add Step
+                  </UButton>
+                </div>
+                <ul v-if="steps.length" class="mt-2 space-y-2">
+                  <li
+                    v-for="(step, i) in steps" :key="i"
+                    class="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg flex justify-between items-start"
+                  >
+                    <span>{{ i + 1 }}. </span>
+                    <pre>{{ step }} </pre>
+                    <UButton
+                      size="xs" color="red" class="cursor-pointer" variant="ghost" icon="i-heroicons-trash"
+                      @click="removeStep(i)"
+                    />
+                  </li>
+                </ul>
+              </div>
+
+              <div class="flex justify-between">
+                <UModal v-model:open="addStepModal" title="Add Step" :ui="{ footer: 'justify-end' }">
+                  <template #body>
+                    <UTextarea v-model="newStep" placeholder="Describe the step..." rows="4" class="w-full" />
+                  </template>
+                  <template #footer>
+                    <UButton color="primary" label="Add Step" @click="addStep" />
+                  </template>
+                </UModal>
+                <UButton type="submit" color="primary" @click="addRecipeModal = false">
+                  Submit
+                </UButton>
+              </div>
+            </div>
+          </UForm>
+        </template>
+      </UModal>
     </div>
 
     <!-- Recipes Grid -->
@@ -268,164 +396,3 @@ img:hover {
   transform: scale(1.05);
 }
 </style>
-<!---->
-<!-- // Mock categories (replace with API fetch) -->
-<!-- const categories = [ -->
-<!--   { label: "Italian", value: 1 }, -->
-<!--   { label: "Desserts", value: 2 }, -->
-<!--   { label: "Vegan", value: 3 }, -->
-<!-- ]; -->
-<!---->
-<!-- // Recipe form state -->
-<!-- const recipe = ref({ -->
-<!--   title: "", -->
-<!--   description: "", -->
-<!--   category_id: null, -->
-<!--   prep_time_minutes: 0, -->
-<!--   featured_image_url: "", -->
-<!--   steps: [] as { step_index: number; content: string }[], -->
-<!-- }); -->
-<!---->
-<!-- // Modal state -->
-<!-- const isStepModalOpen = ref(false); -->
-<!-- const newStepContent = ref(""); -->
-<!---->
-<!-- // Add step to recipe -->
-<!-- function addStep() { -->
-<!--   if (!newStepContent.value) -->
-<!--     return; -->
-<!--   recipe.value.steps.push({ -->
-<!--     step_index: recipe.value.steps.length + 1, -->
-<!--     content: newStepContent.value, -->
-<!--   }); -->
-<!--   newStepContent.value = ""; -->
-<!--   isStepModalOpen.value = false; -->
-<!-- } -->
-<!---->
-<!-- // Remove a step -->
-<!-- function removeStep(index: number) { -->
-<!--   recipe.value.steps.splice(index, 1); -->
-<!--   // re-index steps -->
-<!--   recipe.value.steps.forEach((s, i) => s.step_index = i + 1); -->
-<!-- } -->
-<!---->
-<!-- // Submit recipe (replace with actual API call) -->
-<!-- function submitRecipe() { -->
-<!--   console.log("Submitting recipe:", recipe.value); -->
-<!--   alert("Recipe submitted! Check console."); -->
-<!-- } -->
-<!---->
-<!-- // Toggle Like -->
-<!-- function toggleLike(recipe: any) { -->
-<!--   recipe.liked = !recipe.liked; -->
-<!--   recipe.likes += recipe.liked ? 1 : -1; -->
-<!-- } -->
-<!---->
-<!-- // Toggle Bookmark -->
-<!-- function toggleBookmark(recipe: any) { -->
-<!--   recipe.bookmarked = !recipe.bookmarked; -->
-<!-- } -->
-<!-- </script> -->
-<!---->
-<!-- <template> -->
-<!--   <UContainer class="py-10 my-10"> -->
-<!--     <h1 class="text-3xl font-bold mb-8 text-center"> -->
-<!--       🍽️ Delicious Recipes -->
-<!--     </h1> -->
-<!---->
-<!--     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"> -->
-<!--       <UCard -->
-<!--         v-for="recipe in recipes" :key="recipe.id" -->
-<!--         class="flex flex-col justify-between shadow-lg hover:shadow-xl transition" -->
-<!--       > -->
-<!--         <img :src="recipe.image" alt="Recipe image" class="w-full h-48 object-cover rounded-t-lg"> -->
-<!---->
-<!--         <div class="p-4"> -->
-<!--           <h2 class="text-xl font-semibold mb-2"> -->
-<!--             {{ recipe.title }} -->
-<!--           </h2> -->
-<!--           <p class="text-gray-600 dark:text-gray-400 text-sm mb-4"> -->
-<!--             {{ recipe.description }} -->
-<!--           </p> -->
-<!---->
-<!--           <div class="flex justify-between items-center"> -->
-<!--             <button class="flex items-center gap-1 text-sm" @click="toggleLike(recipe)"> -->
-<!--               <UIcon :name="recipe.liked ? 'i-heroicons-heart-solid' : 'i-heroicons-heart'" class="text-red-500" /> -->
-<!--               <span>{{ recipe.likes }}</span> -->
-<!--             </button> -->
-<!---->
-<!--             <button class="flex items-center gap-1 text-sm"> -->
-<!--               <UIcon name="i-heroicons-chat-bubble-left" /> -->
-<!--               <span>{{ recipe.comments.length }}</span> -->
-<!--             </button> -->
-<!---->
-<!--             <button @click="toggleBookmark(recipe)"> -->
-<!--               <UIcon -->
-<!--                 :name="recipe.bookmarked ? 'i-heroicons-bookmark-solid' : 'i-heroicons-bookmark'" -->
-<!--                 class="text-yellow-500" -->
-<!--               /> -->
-<!--             </button> -->
-<!--           </div> -->
-<!--         </div> -->
-<!--       </UCard> -->
-<!--     </div> -->
-<!--     <h1 class="text-3xl font-bold mb-6"> -->
-<!--       Create New Recipe -->
-<!--     </h1> -->
-<!---->
-<!--     <!-- Recipe Info --> -->
-<!--     <div class="flex flex-col gap-4"> -->
-<!--       <UInput v-model="recipe.title" label="Recipe Title" placeholder="Enter recipe title" /> -->
-<!--       <UTextarea v-model="recipe.description" label="Description" placeholder="Enter recipe description" /> -->
-<!--       <USelect v-model="recipe.category_id" :options="categories" label="Category" /> -->
-<!--       <UInput v-model="recipe.prep_time_minutes" type="number" label="Prep Time (minutes)" /> -->
-<!--       <UInput v-model="recipe.featured_image_url" label="Featured Image URL" placeholder="Enter image URL" /> -->
-<!--     </div> -->
-<!---->
-<!--     <!-- Recipe Steps --> -->
-<!--     <div class="mt-6"> -->
-<!--       <h2 class="text-xl font-semibold mb-2"> -->
-<!--         Steps -->
-<!--       </h2> -->
-<!--       <ul class="list-decimal ml-5 space-y-1"> -->
-<!--         <li v-for="(step, index) in recipe.steps" :key="index" class="flex justify-between items-center"> -->
-<!--           {{ step.content }} -->
-<!--           <UButton size="sm" color="danger" @click="removeStep(index)"> -->
-<!--             Remove -->
-<!--           </UButton> -->
-<!--         </li> -->
-<!--       </ul> -->
-<!--       <UButton class="mt-3" @click="isStepModalOpen = true"> -->
-<!--         Add Step -->
-<!--       </UButton> -->
-<!--     </div> -->
-<!---->
-<!--     <!-- Submit --> -->
-<!--     <UButton class="mt-6" color="primary" @click="submitRecipe"> -->
-<!--       Submit Recipe -->
-<!--     </UButton> -->
-<!---->
-<!--     <!-- Step Modal --> -->
-<!--     <UModal v-model:show="isStepModalOpen" title="Add Recipe Step"> -->
-<!--       <UTextarea v-model="newStepContent" label="Step Description" placeholder="Describe this step..." /> -->
-<!--       <div class="flex justify-end mt-4 gap-2"> -->
-<!--         <UButton color="secondary" @click="isStepModalOpen = false"> -->
-<!--           Cancel -->
-<!--         </UButton> -->
-<!--         <UButton color="primary" @click="addStep"> -->
-<!--           Add Step -->
-<!--         </UButton> -->
-<!--       </div> -->
-<!--     </UModal> -->
-<!--   </UContainer> -->
-<!-- </template> -->
-<!---->
-<!-- <style scoped> -->
-<!-- img { -->
-<!--   transition: transform 0.3s ease; -->
-<!-- } -->
-<!---->
-<!-- img:hover { -->
-<!--   transform: scale(1.05); -->
-<!-- } -->
-<!-- </style> -->

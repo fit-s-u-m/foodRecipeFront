@@ -26,6 +26,14 @@ export default defineNuxtConfig({
       },
     },
   },
+  tailwindcss: {
+    content: [
+      "./components/**/*.{vue,js,ts}",
+      "./pages/**/*.{vue,js,ts}", // dynamic pages are included
+      "./layouts/**/*.{vue,js,ts}",
+      "./app.vue",
+    ],
+  },
   eslint: {
     config: {
       standalone: false,
