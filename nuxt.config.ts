@@ -7,7 +7,10 @@ export default defineNuxtConfig({
   modules: ["@nuxt/eslint", "@nuxt/image", "@nuxt/ui", "@nuxtjs/apollo"],
   ssr: false, // disable server-side rendering
   app: {
-    baseURL: "foodRecipeFront",
+    baseURL: "/foodRecipeFront/", // 👈 your repo name here!
+  },
+  nitro: {
+    preset: "github_pages", // 👈 ensures correct static generation
   },
   vite: {
     plugins: [tailwindcss()],

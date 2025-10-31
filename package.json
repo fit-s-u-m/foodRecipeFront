@@ -12,7 +12,7 @@
   "dependencies": {
     "@antfu/eslint-config": "^6.0.0",
     "@nuxt/eslint": "1.9.0",
-    "@nuxt/image": "1.11.0",
+    "@nuxt/image": "^1.11.0",
     "@nuxt/ui": "4.0.1",
     "@nuxtjs/axios": "^5.13.6",
     "@tailwindcss/vite": "^4.1.14",
