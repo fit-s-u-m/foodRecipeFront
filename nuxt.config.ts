@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ["~/assets/css/main.css"],
   modules: ["@nuxt/eslint", "@nuxt/image", "@nuxt/ui", "@nuxtjs/apollo"],
-  ssr: false, // disable server-side rendering
+  ssr: true, // disable server-side rendering
   app: {
     baseURL: "/foodRecipeFront/", // 👈 your repo name here!
   },
@@ -24,7 +24,7 @@ export default defineNuxtConfig({
   apollo: {
     clients: {
       default: {
-        httpEndpoint: "http://localhost:8080/v1/graphql",
+        httpEndpoint: process.env.HASURA_ENDPOINT || "http://localhost:8080/v1/graphql",
         httpLinkOptions: {
           headers: {
             "x-hasura-admin-secret": process.env.HASURA_ADMIN_SECRET, // only on server
