@@ -68,6 +68,12 @@ const chefs = ref([
 function toggleFollow(chef: any) {
   chef.following = !chef.following;
 }
+function goToEachChefPage(index: number) {
+  navigateTo(`/chef/${index}`);
+}
+function goToEachRecipePage(index: number) {
+  navigateTo(`/recipe/${index}`);
+}
 </script>
 
 <template class="overflow-y-scroll">
@@ -77,10 +83,9 @@ function toggleFollow(chef: any) {
     </h1>
 
     <div class="flex flex-col gap-6">
-      <div
-        v-for="chef in chefs" :key="chef.id"
-        class="flex flex-col md:flex-row items-start md:items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition"
-      >
+      <div v-for="chef in chefs" :key="chef.id"
+        class="flex flex-col md:flex-row cursor-pointer items-start md:items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition"
+        @click="goToEachChefPage(chef.id)">
         <!-- Chef profile -->
         <img :src="chef.profileImage" alt="Chef profile" class="w-20 h-20 rounded-full object-cover">
         <div class="flex-1">
@@ -103,10 +108,9 @@ function toggleFollow(chef: any) {
 
           <!-- Horizontal scroll of top recipes -->
           <div class="mt-3 flex gap-3 overflow-x-auto py-2">
-            <div
-              v-for="recipe in chef.recipes" :key="recipe.id"
+            <div v-for="recipe in chef.recipes" :key="recipe.id"
               class="flex-shrink-0 w-32 h-32 rounded-lg overflow-hidden shadow hover:shadow-lg transition cursor-pointer"
-            >
+              @click="goToEachRecipePage(recipe.id)">
               <img :src="recipe.image" :alt="recipe.title" class="w-full h-full object-cover">
               <p class="text-sm mt-1 text-center px-1">
                 {{ recipe.title }}

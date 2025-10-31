@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import type { FormSubmitEvent } from "@nuxt/ui";
-
-import { toast } from "#build/ui";
 import { ref } from "vue";
 import * as z from "zod";
 
@@ -234,14 +231,11 @@ function onRecipeClicked(index: number) {
               <!-- Image Preview -->
               <div v-if="images.length" class="grid grid-cols-3 gap-2">
                 <div v-for="(img, i) in images" :key="i" class="relative group">
-                  <img
-                    :src="img.preview" alt="Preview"
-                    class="w-full h-32 object-cover rounded-xl border border-gray-200"
-                  >
+                  <img :src="img.preview" alt="Preview"
+                    class="w-full h-32 object-cover rounded-xl border border-gray-200">
                   <button
                     class="absolute top-1 right-1 bg-red-500 text-white  w-6 h-6 rounded-sm  opacity-0 group-hover:opacity-100 transition"
-                    @click.prevent="removeImage(i)"
-                  >
+                    @click.prevent="removeImage(i)">
                     ✕
                   </button>
                 </div>
@@ -249,24 +243,18 @@ function onRecipeClicked(index: number) {
               <div>
                 <div class="flex justify-between items-center">
                   <label class="font-semibold">Steps</label>
-                  <UButton
-                    size="xs" color="neutral" variant="outline" class="cursor-pointer"
-                    @click="addStepModal = true"
-                  >
+                  <UButton size="xs" color="neutral" variant="outline" class="cursor-pointer"
+                    @click="addStepModal = true">
                     + Add Step
                   </UButton>
                 </div>
                 <ul v-if="steps.length" class="mt-2 space-y-2">
-                  <li
-                    v-for="(step, i) in steps" :key="i"
-                    class="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg flex justify-between items-start"
-                  >
+                  <li v-for="(step, i) in steps" :key="i"
+                    class="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg flex justify-between items-start">
                     <span>{{ i + 1 }}. </span>
                     <pre>{{ step }} </pre>
-                    <UButton
-                      size="xs" color="red" class="cursor-pointer" variant="ghost" icon="i-heroicons-trash"
-                      @click="removeStep(i)"
-                    />
+                    <UButton size="xs" color="red" class="cursor-pointer" variant="ghost" icon="i-heroicons-trash"
+                      @click="removeStep(i)" />
                   </li>
                 </ul>
               </div>
@@ -292,10 +280,8 @@ function onRecipeClicked(index: number) {
 
     <!-- Recipes Grid -->
     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      <UCard
-        v-for="recipe in recipesAll" :key="recipe.id" class="flex flex-col shadow-lg hover:shadow-xl transition"
-        @click="() => { onRecipeClicked(recipe.id) }"
-      >
+      <UCard v-for="recipe in recipesAll" :key="recipe.id" class="flex flex-col shadow-lg hover:shadow-xl transition"
+        @click="() => { onRecipeClicked(recipe.id) }">
         <img :src="recipe.featured_image" alt="Recipe image" class="w-full h-48 object-cover rounded-t-lg">
         <div class="p-4 flex flex-col justify-between flex-1">
           <h2 class="text-xl font-semibold mb-2">
@@ -317,10 +303,8 @@ function onRecipeClicked(index: number) {
             </button>
 
             <button @click="toggleBookmark(recipe)">
-              <UIcon
-                :name="recipe.bookmarked ? 'i-heroicons-bookmark-solid' : 'i-heroicons-bookmark'"
-                class="text-yellow-500"
-              />
+              <UIcon :name="recipe.bookmarked ? 'i-heroicons-bookmark-solid' : 'i-heroicons-bookmark'"
+                class="text-yellow-500" />
             </button>
           </div>
         </div>

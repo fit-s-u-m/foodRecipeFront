@@ -109,7 +109,7 @@ const links: ButtonProps[] = [
   },
   {
     label: "Learn Cooking Tips",
-    to: "/chiefs",
+    to: "/chefs",
     color: "primary",
     variant: "subtle",
     trailingIcon: "i-lucide-arrow-right",
@@ -119,35 +119,27 @@ const links: ButtonProps[] = [
 
 <template>
   <div class="flex-1 w-full">
-    <UPageHero
-      title="Discover Delicious Recipes"
+    <UPageHero title="Discover Delicious Recipes"
       description="Explore a world of easy, healthy, and mouthwatering recipes made for every occasion. Learn to cook like a chef with step-by-step guides and expert cooking tips."
-      headline="Your Daily Source of Inspiration" orientation="horizontal" reverse :links="links"
-    >
+      headline="Your Daily Source of Inspiration" orientation="horizontal" reverse :links="links">
       <img src="/images/food.webp" alt="Tasty homemade recipe" class="rounded-lg shadow-2xl ring ring-default">
     </UPageHero>
-    <UCarousel
-      ref="carousel" v-slot="{ item }" arrows :items="items" :prev="{ onClick: onClickPrev }"
-      :next="{ onClick: onClickNext }" auto-scroll class="w-full max-w-xs mx-auto" @select="onSelect"
-    >
+    <UCarousel ref="carousel" v-slot="{ item }" arrows :items="items" :prev="{ onClick: onClickPrev }"
+      :next="{ onClick: onClickNext }" auto-scroll class="w-full max-w-xs mx-auto" @select="onSelect">
       <img :src="item" width="320" height="320" class="rounded-lg">
     </UCarousel>
 
     <div class="flex gap-1 justify-between pt-4 max-w-xs mx-auto">
-      <div
-        v-for="(item, index) in items" :key="index" class="size-11 opacity-25 hover:opacity-100 transition-opacity"
-        :class="{ 'opacity-100': activeIndex === index }" @click="select(index)"
-      >
+      <div v-for="(item, index) in items" :key="index" class="size-11 opacity-25 hover:opacity-100 transition-opacity"
+        :class="{ 'opacity-100': activeIndex === index }" @click="select(index)">
         <NuxtImg :src="item" width="44" height="44" class="rounded-lg" />
       </div>
     </div>
 
     <UPageColumns class="m-8">
-      <UPageCard
-        v-for="(testimonial, index) in testimonials" :key="index" variant="subtle"
+      <UPageCard v-for="(testimonial, index) in testimonials" :key="index" variant="subtle"
         :description="testimonial.quote"
-        :ui="{ description: 'before:content-[open-quote] after:content-[close-quote]' }"
-      >
+        :ui="{ description: 'before:content-[open-quote] after:content-[close-quote]' }">
         <template #footer>
           <UUser v-bind="testimonial.user" size="xl" />
         </template>

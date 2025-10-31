@@ -5,14 +5,12 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ["~/assets/css/main.css"],
   modules: ["@nuxt/eslint", "@nuxt/image", "@nuxt/ui", "@nuxtjs/apollo"],
-  ssr: true, // disable server-side rendering
+  ssr: true, // enable server-side rendering
   app: {
     baseURL: "/foodRecipeFront/", // 👈 your repo name here!
   },
-  nitro: {
-    preset: "github_pages", // 👈 ensures correct static generation
-  },
   vite: {
+    base: "/foodRecipeFront/",
     plugins: [tailwindcss()],
   },
   runtimeConfig: {
@@ -24,7 +22,7 @@ export default defineNuxtConfig({
   apollo: {
     clients: {
       default: {
-        httpEndpoint: process.env.HASURA_ENDPOINT || "http://localhost:8080/v1/graphql",
+        httpEndpoint: "http://localhost:8080/v1/graphql",
         httpLinkOptions: {
           headers: {
             "x-hasura-admin-secret": process.env.HASURA_ADMIN_SECRET, // only on server
@@ -38,7 +36,7 @@ export default defineNuxtConfig({
       "./components/**/*.{vue,js,ts}",
       "./pages/**/*.{vue,js,ts}", // dynamic pages are included
       "./layouts/**/*.{vue,js,ts}",
-      "./app.vue",
+      "./app/app.vue",
     ],
   },
   eslint: {

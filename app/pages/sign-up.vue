@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { AuthFormField, FormSubmitEvent } from "@nuxt/ui";
 
-import { useRouter } from "#app";
 import * as z from "zod";
 
 definePageMeta({
@@ -54,10 +53,8 @@ const schema = z.object({
 });
 
 type Schema = z.output<typeof schema>;
-const router = useRouter();
 
 function onSubmit(payload: FormSubmitEvent<Schema>) {
-  console.log(payload);
   const email = payload.data.email;
   const password = payload.data.password;
   const username = payload.data.username;
@@ -108,9 +105,10 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
 <template>
   <div class="flex flex-col items-center justify-center gap-4 p-4">
     <UPageCard class="w-full max-w-md">
-      <UAuthForm :schema="schema" title="Create an account" description="Sign up to get started."
-        icon="i-lucide-user-plus" :fields="fields" :providers="providers" :submit="{ label: 'Sign up' }"
-        @submit="onSubmit">
+      <UAuthForm
+        :schema="schema" title="Create an account" description="Sign up to get started."
+        icon="i-lucide-user-plus" :fields="fields" :submit="{ label: 'Sign up' }" @submit="onSubmit"
+      >
         <template #description>
           Already have an account? <ULink to="/login" class="text-primary font-medium">
             Sign in

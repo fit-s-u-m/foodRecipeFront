@@ -30,19 +30,22 @@ const fields: AuthFormField[] = [{
   type: "checkbox",
 }];
 
-const providers = [{
-  label: "Google",
-  icon: "i-simple-icons-google",
-  onClick: () => {
-    toast.add({ title: "Google", description: "Login with Google" });
+const providers = [
+  {
+    label: "Google",
+    icon: "i-simple-icons-google",
+    onClick: () => {
+      toast.add({ title: "Google", description: "Login with Google" });
+    },
   },
-}, {
-  label: "GitHub",
-  icon: "i-simple-icons-github",
-  onClick: () => {
-    toast.add({ title: "GitHub", description: "Login with GitHub" });
+  {
+    label: "GitHub",
+    icon: "i-simple-icons-github",
+    onClick: () => {
+      toast.add({ title: "GitHub", description: "Login with GitHub" });
+    },
   },
-}];
+];
 
 const schema = z.object({
   email: z.email("Invalid email"),
@@ -67,15 +70,8 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
 
   const variables = { email, password };
 
-  const config = useRuntimeConfig();
-  const adminSecret = config.public.hasuraAdminSecret;
   const { mutate, onDone, onError } = useMutation(query, {
     variables,
-    context: {
-      headers: {
-        "x-hasura-admin-secret": adminSecret,
-      },
-    },
   });
   mutate({ email, password });
   onDone((payload) => {
@@ -89,7 +85,7 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
     navigateTo(("/"));
   });
   onError((err) => {
-    console.error(err);
+    console.error("Apollo-Error", err);
   });
 }
 </script>
@@ -99,7 +95,7 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
     <UPageCard class="w-full max-w-md">
       <UAuthForm
         :schema="schema" title="Login" description="Enter your credentials to access your account."
-        icon="i-lucide-user" :fields="fields" :providers="providers" @submit="onSubmit"
+        icon="i-lucide-user" :fields="fields" @submit="onSubmit"
       >
         <!-- Footer slot: add custom buttons -->
         <template #footer>

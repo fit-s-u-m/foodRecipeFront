@@ -6,7 +6,7 @@ import { GET_USER_BY_ID } from "~/graphql/queries";
 const items = ref([
   { label: "Home", icon: "i-lucide-home", to: "/" },
   { label: "Recipes", icon: "i-lucide-utensils", to: "/recipes" },
-  { label: "Chefs", icon: "i-lucide-chef-hat", to: "/chiefs" },
+  { label: "Chefs", icon: "i-lucide-chef-hat", to: "/chefs" },
 ]);
 
 const active = ref("0");
@@ -153,39 +153,30 @@ const showSearch = ref(false);
 
 <template>
   <div>
-    <UDashboardGroup
-      v-if="!isMobile" class="flex flex-col overflow-y-auto w-full"
-      style="scrollbar-gutter: stable both-edges;"
-    >
+    <UDashboardGroup v-if="!isMobile" class="flex flex-col overflow-y-auto w-full"
+      style="scrollbar-gutter: stable both-edges;">
       <div
-        class="flex justify-between items-center mt-3 px-5 fixed top-0 w-full z-100  rounded-xl bg-white/30  dark:bg-gray-800/40 backdrop-blur-lg shadow-lg"
-      >
+        class="flex justify-between items-center mt-3 px-5 fixed top-0 w-full z-100  rounded-xl bg-white/30  dark:bg-gray-800/40 backdrop-blur-lg shadow-lg">
         <UDashboardSearchButton label=" Search chefs / recipes" class="h-fit rounded-2xl" />
         <UNavigationMenu v-model="active" highlight highlight-color="primary" color="secondary" :items="items" />
 
         <div class="flex gap-5  items-center">
           <UColorModeSwitch />
-          <UAvatar
-            :src="user && user.avatar_url ? user.avatar_url : ''"
-            :alt="user && user.username ? user.username.toUpperCase() : ''" size="xl"
-          />
+          <UAvatar :src="user && user.avatar_url ? user.avatar_url : ''"
+            :alt="user && user.username ? user.username.toUpperCase() : ''" size="xl" />
         </div>
 
-        <UDashboardSearch
-          v-model:search-term="searchTerm" shortcut="meta_k" :groups="updatedGroup" :color-mode="false"
-          placeholder="Search for chefs, recipes, or ingredients..." :fuse="{ resultLimit: 42 }"
-        />
+        <UDashboardSearch v-model:search-term="searchTerm" shortcut="meta_k" :groups="updatedGroup" :color-mode="false"
+          placeholder="Search for chefs, recipes, or ingredients..." :fuse="{ resultLimit: 42 }" />
       </div>
       <slot />
     </UDashboardGroup>
 
     <!-- Mobile SlideOver -->
     <div v-else>
-      <UButton
-        label="Menu"
+      <UButton label="Menu"
         class="m-2 sticky top-1 left-1 z-5 bg-gray-700/30 hover:bg-blue-300 dark:bg-gray-100/40 backdrop-blur-2xl text-black "
-        @click="showSlideOver = true"
-      />
+        @click="showSlideOver = true" />
 
       <USlideover v-model:open="showSlideOver" side="left" title="menu">
         <template #content>
@@ -194,16 +185,12 @@ const showSearch = ref(false);
               <div class="flex gap-5 w-full">
                 <UAvatar :src="user ? user.avatar_url : ''" :alt="user ? user.username : ''" size="xl" />
                 <UDashboardSearchButton label=" Search chefs / recipes" class="w-full" @click="showSearch = true" />
-                <UDashboardSearch
-                  v-model:search-term="searchTerm" v-model:open="showSearch" shortcut="meta_k"
+                <UDashboardSearch v-model:search-term="searchTerm" v-model:open="showSearch" shortcut="meta_k"
                   :groups="groups" :color-mode="false" placeholder="Search for chefs, recipes, or ingredients..."
-                  :fuse="{ resultLimit: 42 }"
-                />
+                  :fuse="{ resultLimit: 42 }" />
               </div>
-              <UNavigationMenu
-                v-model="active" color="secondary" class="justify-center" :items="items"
-                orientation="vertical"
-              />
+              <UNavigationMenu v-model="active" color="secondary" class="justify-center" :items="items"
+                orientation="vertical" />
             </div>
             <UColorModeSwitch />
           </div>

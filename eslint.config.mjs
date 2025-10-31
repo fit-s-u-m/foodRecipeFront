@@ -15,7 +15,12 @@ export default withNuxt(
   }, {
     rules: {
       "perfectionist/sort-imports": ["error", { tsconfigRootDir: "." }],
-      "no-console": ["warn"],
+      // "no-console": ["warn"],
+
+      "vue/html-indent": "off",
+      "vue/first-attribute-linebreak": "off",
+      "vue/html-closing-bracket-newline": "off",
+
       "unicorn/filename-case": ["error", {
         cases: {
           kebabCase: true,
