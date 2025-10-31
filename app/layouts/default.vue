@@ -162,8 +162,8 @@ const showSearch = ref(false);
 
         <div class="flex gap-5  items-center">
           <UColorModeSwitch />
-          <UAvatar :src="user && user.avatar_url ? user.avatar_url : ''"
-            :alt="user && user.username ? user.username.toUpperCase() : ''" size="xl" />
+          <UAvatar class="cursor-pointer" :src="user && user.avatar_url ? user.avatar_url : ''"
+            :alt="user && user.username ? user.username.toUpperCase() : ''" size="xl" @click="navigateTo('/profile')" />
         </div>
 
         <UDashboardSearch v-model:search-term="searchTerm" shortcut="meta_k" :groups="updatedGroup" :color-mode="false"
@@ -183,7 +183,8 @@ const showSearch = ref(false);
           <div class="flex flex-col justify-between p-4 gap-4 h-full">
             <div class="flex gap-5 flex-col">
               <div class="flex gap-5 w-full">
-                <UAvatar :src="user ? user.avatar_url : ''" :alt="user ? user.username : ''" size="xl" />
+                <UAvatar :src="user ? user.avatar_url : ''" :alt="user ? user.username : ''" size="xl"
+                  class="cursor-pointer" @click="navigateTo('/profile')" />
                 <UDashboardSearchButton label=" Search chefs / recipes" class="w-full" @click="showSearch = true" />
                 <UDashboardSearch v-model:search-term="searchTerm" v-model:open="showSearch" shortcut="meta_k"
                   :groups="groups" :color-mode="false" placeholder="Search for chefs, recipes, or ingredients..."

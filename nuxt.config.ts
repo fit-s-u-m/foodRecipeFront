@@ -17,6 +17,10 @@ export default defineNuxtConfig({
     hasuraAdminSecret: process.env.HASURA_ADMIN_SECRET, // server-only
     public: {
       hasuraAdminSecret: process.env.HASURA_ADMIN_SECRET, // exposed to client
+      clouldinaryUploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET,
+      clouldinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
+      clouldinaryApiKey: process.env.CLOUDINARY_API_KEY,
+      clouldinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
     },
   },
   apollo: {

@@ -175,12 +175,57 @@ export const FOLLOW_CHEF = gql`
 export const GET_USER_BY_ID = gql`
     query MyQuery($userId: uuid!) {
       users(where: {id: {_eq: $userId}}) {
+      id
       avatar_url
       bio
       created_at
       display_name
       email
       username
+    }
+  }
+`;
+export const UPDATE_USER_AVATAR_BY_ID = gql`
+  mutation MyMutation(
+    $user_id: uuid!,
+    $avatar_url: String!,
+  ) {
+    update_users_by_pk(
+      pk_columns: { id: $user_id },
+      _set: {
+        avatar_url: $avatar_url,
+      }
+    ) {
+      id
+      avatar_url
+      bio
+      created_at
+      username
+      email
+    }
+  }
+`;
+export const UPDATE_USER_BY_ID = gql`
+  mutation MyMutation(
+    $user_id: uuid!,
+    $bio: String!,
+    $username: String!,
+    $email: String!
+  ) {
+    update_users_by_pk(
+      pk_columns: { id: $user_id },
+      _set: {
+        bio: $bio,
+        username: $username,
+        email: $email
+      }
+    ) {
+      id
+      avatar_url
+      bio
+      created_at
+      username
+      email
     }
   }
 `;
