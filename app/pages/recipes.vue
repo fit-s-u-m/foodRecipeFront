@@ -83,56 +83,6 @@ const recipes = ref([
   },
 ]);
 
-// Recipe form state
-// const newRecipe = ref({
-//   title: "",
-//   description: "",
-//   category_id: null,
-//   prep_time_minutes: 0,
-//   featured_image_url: "",
-//   steps: [] as { step_index: number; content: string }[],
-// });
-//
-// Modal state
-// const isRecipeModalOpen = ref(false);
-// const isStepModalOpen = ref(false);
-// const newStepContent = ref("");
-
-// // Add step to recipe
-// function addStep() {
-//   if (!newStepContent.value)
-//     return;
-//   newRecipe.value.steps.push({
-//     step_index: newRecipe.value.steps.length + 1,
-//     content: newStepContent.value,
-//   });
-//   newStepContent.value = "";
-//   isStepModalOpen.value = false;
-// }
-//
-// // Remove step
-// function removeStep(index: number) {
-//   newRecipe.value.steps.splice(index, 1);
-//   newRecipe.value.steps.forEach((s, i) => s.step_index = i + 1);
-// }
-//
-// // Submit recipe
-// function submitRecipe() {
-//   if (!newRecipe.value.title)
-//     return alert("Recipe title required!");
-//   recipes.value.push({
-//     ...newRecipe.value,
-//     id: Date.now(),
-//     likes: 0,
-//     liked: false,
-//     bookmarked: false,
-//     comments: [],
-//     image: newRecipe.value.featured_image_url,
-//   });
-//   newRecipe.value = { title: "", description: "", category_id: null, prep_time_minutes: 0, featured_image_url: "", steps: [] };
-//   isRecipeModalOpen.value = false;
-// }
-
 // Toggle Like
 function toggleLike(recipe: any) {
   recipe.liked = !recipe.liked;
@@ -153,6 +103,7 @@ interface RecipieResp {
   description: string;
   featured_image: string | null;
   id: string;
+  recipe_id: number;
   prep_time_minutes: number;
   recipe_likes_aggregate: {
     aggregate: {
@@ -178,7 +129,7 @@ onMounted(() => {
         const recipes = result.value.recipes as RecipieResp[];
         // recipesFromBackEnd should hold an ARRAY of recipes, not just the first one
         recipesFromBackEnd.value = recipes.map(prevRecipe => ({
-          id: prevRecipe.id,
+          id: prevRecipe.recipe_id,
           featured_image: prevRecipe.featured_image,
           description: prevRecipe.description,
           title: prevRecipe.title,
@@ -199,21 +150,13 @@ onMounted(() => {
 });
 
 const recipesAll = computed(() => {
-  // 1. Start with the local mock recipes array
   let combined = [...recipes.value];
-  console.log({ x: recipesFromBackEnd.value, c: combined });
-
-  // 2. Check if the backend data has loaded and is an array
   if (recipesFromBackEnd.value) {
-    // 3. Concatenate the backend recipes
     combined = [...combined, ...recipesFromBackEnd.value];
   }
-
-  // Return the combined array (will re-run when recipesFromBackEnd.value changes)
   return combined;
 });
 
-console.log({ recipesAll });
 const addRecipeModal = ref(false);
 const addStepModal = ref(false);
 const schema = z.object({
@@ -222,7 +165,6 @@ const schema = z.object({
 });
 const newStep = ref("");
 
-type Schema = z.output<typeof schema>;
 const steps = ref<string[]>([]);
 interface ImagePreview {
   file: File;
@@ -246,17 +188,11 @@ function handleImagesUpload(event: Event) {
     const preview = URL.createObjectURL(file);
     images.value.push({ file, preview });
   }
-
-  console.log(images.value);
 }
 
 function onSubmit(event: Event) {
   event.preventDefault();
-  // console.log("Time:", state.time);
-  // console.log("Images:", state.images);
-  // console.log("Image previews (browser URLs):", previews.value);
-
-  alert("Recipe submitted! Check console for image data.");
+  console.log("Recipe submitted! Check console for image data.");
 }
 function removeImage(index: number) {
   images.value.splice(index, 1);
@@ -271,6 +207,9 @@ function addStep() {
 }
 function removeStep(index: number) {
   steps.value.splice(index, 1);
+}
+function onRecipeClicked(index: number) {
+  navigateTo(`/recipe/${index}`);
 }
 </script>
 
@@ -353,7 +292,10 @@ function removeStep(index: number) {
 
     <!-- Recipes Grid -->
     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      <UCard v-for="recipe in recipesAll" :key="recipe.id" class="flex flex-col shadow-lg hover:shadow-xl transition">
+      <UCard
+        v-for="recipe in recipesAll" :key="recipe.id" class="flex flex-col shadow-lg hover:shadow-xl transition"
+        @click="() => { onRecipeClicked(recipe.id) }"
+      >
         <img :src="recipe.featured_image" alt="Recipe image" class="w-full h-48 object-cover rounded-t-lg">
         <div class="p-4 flex flex-col justify-between flex-1">
           <h2 class="text-xl font-semibold mb-2">

@@ -14,6 +14,7 @@ export const GET_RECIPES = gql`
       featured_image
       prep_time_minutes
       updated_at
+      recipe_id
 
       # Total number of likes for this recipe (Correct)
       recipe_likes_aggregate {

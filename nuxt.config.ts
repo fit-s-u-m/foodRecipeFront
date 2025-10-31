@@ -5,6 +5,10 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ["~/assets/css/main.css"],
   modules: ["@nuxt/eslint", "@nuxt/image", "@nuxt/ui", "@nuxtjs/apollo"],
+  ssr: false, // disable server-side rendering
+  app: {
+    baseURL: "foodRecipeFront",
+  },
   vite: {
     plugins: [tailwindcss()],
   },
