@@ -11,10 +11,26 @@ export const GET_RECIPES = gql`
       id
       title
       description
-      featured_image
       prep_time_minutes
       updated_at
       recipe_id
+      recipe_ingredients {
+        ingredient {
+          name
+        }
+      }
+      recipe_categories {
+        category {
+          name
+        }
+      }
+      recipe_images {
+        url
+      }
+      recipe_steps {
+        content
+        step_index
+      }
 
       # Total number of likes for this recipe (Correct)
       recipe_likes_aggregate {
@@ -41,33 +57,58 @@ export const GET_RECIPES = gql`
     }
   }
 `;
-// export const GET_RECIPES = gql`
-//   query GetRecipes {
-//     recipes {
-//       id
-//       title
-//       description
-//       featured_image
-//       prep_time_minutes
-//       updated_at
-//       recipe_likes_aggregate {
-//         aggregate {
-//           count
-//         }
-//       }
-//       recipe_comments {
-//         content
-//         user_id
-//       }
-//       recipe_bookmarks(where: {user_id: {_eq:  "28680b74-3b97-44ce-9ff3-7108d7c43551"}}){
-//         id
-//       }
-//       recipe_likes(where: {user_id: {_eq: "28680b74-3b97-44ce-9ff3-7108d7c43551"}}) {
-//         id
-//       }
-//     }
-//   }
-// `;
+export const GET_RECIPES_BY_ID = gql`
+  query GetRecipes($user_id: uuid!,$recipe_id:Int!) {
+    recipes(where: {recipe_id: {_eq: $recipe_id}}) {
+      id
+      title
+      description
+      prep_time_minutes
+      updated_at
+      recipe_id
+      recipe_ingredients {
+        ingredient {
+          name
+        }
+      }
+      recipe_categories {
+        category {
+          name
+        }
+      }
+      recipe_images {
+        url
+      }
+      recipe_steps {
+        content
+        step_index
+      }
+
+      # Total number of likes for this recipe (Correct)
+      recipe_likes_aggregate {
+        aggregate {
+          count
+        }
+      }
+
+      # All comments on this recipe (Correct)
+      recipe_comments {
+        content
+        user_id
+      }
+
+      # Check if the CURRENT user has bookmarked this recipe
+      recipe_bookmarks(where: {user_id: {_eq: $user_id}}){
+        id
+      }
+
+      # Check if the CURRENT user has liked this recipe
+      recipe_likes(where: {user_id: {_eq: $user_id}}) {
+        id
+      }
+    }
+  }
+`;
 
 export const GET_RECIPE_BY_ID = gql`
   query GetRecipeById($id: ID!) {
@@ -228,4 +269,53 @@ export const UPDATE_USER_BY_ID = gql`
       email
     }
   }
+`;
+
+export const GET_INGREDIENTS = gql`
+  query MyQuery {
+    ingredients {
+      name
+      id
+    }
+  }
+`;
+export const GET_CATEGORIES = gql`
+  query MyQuery {
+    categories {
+      name
+      id
+    }
+  }
+`;
+export const INSERT_RECIPE = gql`
+mutation InsertRecipe(
+  $user_id: uuid!,
+  $title: String!,
+  $description: String!,
+  $prep_time_minutes: Int!,
+  $images: [recipe_images_insert_input!] = [],
+  $ingredients: [recipe_ingredients_insert_input!] = [],
+  $categories: [recipe_categories_insert_input!] = [],
+  $steps: [recipe_steps_insert_input!] = []
+) {
+  insert_recipes(
+    objects: {
+      user_id: $user_id
+      title: $title
+      description: $description
+      prep_time_minutes: $prep_time_minutes
+      recipe_images: { data: $images }         # array of { url: "..." }
+      recipe_ingredients: { data: $ingredients } # array of { ingredient_id: "..." }
+      recipe_categories: { data: $categories }   # array of { category_id: "..." }
+      recipe_steps: { data: $steps }             # array of { step_text: "..." }
+    }
+  ) {
+    returning {
+      id
+      title
+    }
+    affected_rows
+  }
+}
+
 `;

@@ -109,6 +109,9 @@ interface RecipieResp {
       count: number;
     };
   };
+  recipe_images: { url: string }[];
+  recipe_categoies: { category: { name: string } }[];
+  recipe_ingredients: { ingredient: { name: string } }[];
   recipe_comments: { content: string; user_id: string }[];
   recipe_bookmarks: { id: number }[];
   recipe_likes: { id: number }[];
@@ -129,7 +132,7 @@ onMounted(() => {
         // recipesFromBackEnd should hold an ARRAY of recipes, not just the first one
         recipesFromBackEnd.value = recipes.map(prevRecipe => ({
           id: prevRecipe.recipe_id,
-          featured_image: prevRecipe.featured_image,
+          featured_image: prevRecipe.recipe_images[0]?.url,
           description: prevRecipe.description,
           title: prevRecipe.title,
           liked: (prevRecipe.recipe_likes.length !== 0),
@@ -159,6 +162,8 @@ const recipesAll = computed(() => {
 function onRecipeClicked(index: number) {
   navigateTo(`/recipe/${index}`);
 }
+
+// TODO:Filtering recipes
 function onFilter(filters: FILTER) {
   console.log("Filters applied:", filters);
   isFilterModalOpen.value = false;
@@ -180,11 +185,13 @@ function onFilter(filters: FILTER) {
         <AddRecipe />
       </div>
     </div>
+    <!-- TODO:Loading -->
+    <div v-if="loading" class="text-gray-500 dark:text-gray-400 text-lg animate-spin mt-10" />
 
     <!-- Recipes Grid -->
-    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      <UCard v-for="recipe in recipesAll" :key="recipe.id" class="flex flex-col shadow-lg hover:shadow-xl transition"
-        @click="() => { onRecipeClicked(recipe.id) }">
+    <div v-if="recipesFromBackEnd && !loading" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <UCard v-for="recipe in recipesFromBackEnd" :key="recipe.id"
+        class="flex flex-col shadow-lg hover:shadow-xl transition" @click="() => { onRecipeClicked(recipe.id) }">
         <img :src="recipe.featured_image" alt="Recipe image" class="w-full h-48 object-cover rounded-t-lg">
         <div class="p-4 flex flex-col justify-between flex-1">
           <h2 class="text-xl font-semibold mb-2">

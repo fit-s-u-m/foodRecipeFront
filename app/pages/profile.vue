@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from "vue";
 
 import type { USER } from "~/types/types";
 
+import { uploadToCloudinary } from "~/components/lib/util";
 import { GET_USER_BY_ID, UPDATE_USER_AVATAR_BY_ID, UPDATE_USER_BY_ID } from "~/graphql/queries";
 
 const user = ref<USER | null>(null);
@@ -21,7 +22,7 @@ async function handleAvatarChange(e: Event) {
   const file = target.files?.[0];
   if (!file)
     return;
-  uploadToCloudinary(file);
+  changeAvatarURL(file);
   const reader = new FileReader();
   reader.onload = () => (avatarPreview.value = reader.result as string);
   reader.readAsDataURL(file);
@@ -72,37 +73,26 @@ onMounted(() => {
     }
   });
 });
-async function uploadToCloudinary(selectedFile: File) {
+async function changeAvatarURL(selectedFile: File) {
   uploading.value = true;
-
-  // const config = useRuntimeConfig();
-  const formData = new FormData();
-  formData.append("file", selectedFile);
-  formData.append("upload_preset", "food-Recipe");
-
-  const cloudName = "dabbqob1j";
-
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-    method: "POST",
-    body: formData,
-  });
-
-  const data = await res.json();
+  const urls = await uploadToCloudinary([selectedFile]);
+  const avatarUrl = urls[0];
   uploading.value = false;
+  if (!avatarUrl)
+    return;
 
   // eslint-disable-next-line no-console
-  console.log("Uploaded:", data.url);
-  avatarPreview.value = data.url;
+  console.log("Uploaded:", avatarUrl);
+  avatarPreview.value = avatarUrl;
 
   // update db
   if (!user.value)
     return;
-  // useMutation(UPDATE_USER_BY_ID, { variables: { user_id: user.value.id, avatar_url: avatarPreview.value } });
   const { mutate: updateUser } = useMutation(UPDATE_USER_AVATAR_BY_ID);
 
   await updateUser({
     user_id: user.value.id,
-    avatar_url: data.url,
+    avatar_url: avatarUrl,
   });
   // user.value!.avatar = data.url;
 }

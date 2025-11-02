@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import * as z from "zod";
 
-import { CREATE_RECIPE } from "~/graphql/queries";
+import { CREATE_RECIPE, GET_CATEGORIES, GET_INGREDIENTS, INSERT_RECIPE } from "~/graphql/queries";
+
+import { uploadToCloudinary } from "./lib/util";
 
 interface ImagePreview {
   file: File;
@@ -16,32 +18,44 @@ const addStepModal = ref(false);
 
 const state = reactive({
   time: 0,
-  images: [] as File[],
   ingredients: [] as string[],
+  categories: [] as string[],
+  title: "" as string,
+  description: "" as string,
 
 });
 const addRecipeModal = ref(false);
 const schema = z.object({
   time: z.number().min(1, "Time is required").max(300, "Too long"),
-  image: z.url("Must be a valid URL"),
   ingredients: z.array(z.string()).min(1, "At least one ingredient is required"),
+  categories: z.array(z.string("must be string")),
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
 });
-const ingredientOptions = [
-  "Peanuts",
-  "Milk",
-  "Shrimp",
-  "Gluten",
-  "Eggs",
-  "Soy",
-  "Fish",
-  "Shellfish",
-  "Nuts",
-  "Dairy",
-  "Wheat",
-  "Sesame",
-];
+interface NameId {
+  id: string;
+  name: string;
+}
+const ingredientOptions = ref<NameId[]>([]);
+const ingredientsLoading = ref(true);
+const categoryOptions = ref<NameId[]>([]);
+const categoriesLoading = ref(true);
+onMounted(() => {
+  const { result: ingredientsRes, loading: ingredientsLoadingRes } = useQuery(GET_INGREDIENTS);
+  const { result: categoriesRes, loading: categoriesLoadingRes } = useQuery(GET_CATEGORIES);
+  watchEffect(() => {
+    if (!ingredientsLoadingRes.value && ingredientsRes.value) {
+      ingredientOptions.value = ingredientsRes.value.ingredients;
+      ingredientsLoading.value = false;
+    }
+    if (!categoriesLoadingRes.value && categoriesRes.value) {
+      categoryOptions.value = categoriesRes.value.categories;
+      categoriesLoading.value = false;
+    }
+  });
+});
 
-function handleImagesUpload(event: Event) {
+function handleImagesSelect(event: Event) {
   const target = event.target as HTMLInputElement;
   const files = target.files;
   if (!files)
@@ -52,10 +66,38 @@ function handleImagesUpload(event: Event) {
     images.value.push({ file, preview });
   }
 }
+const submitingData = ref(false);
+function getId(items: NameId[], list: string[]): string[] {
+  return items.filter(i => list.includes(i.name)).map(i => i.id);
+}
 
-function onSubmit(event: Event) {
-  event.preventDefault();
-  console.log("Recipe submitted! Check console for image data.");
+async function onSubmit(event: any) {
+  submitingData.value = true;
+  const urls = await uploadToCloudinary(images.value.map(img => img.file));
+  const { mutate } = useMutation(INSERT_RECIPE);
+  const userId = localStorage.getItem("userId") || "";
+  const ingredientsId = getId(ingredientOptions.value, state.ingredients);
+  const categoriesId = getId(categoryOptions.value, state.categories);
+
+  const recipeImages = urls.map(url => ({ url }));
+  const recipeIngredients = ingredientsId.map(id => ({ ingredient_id: id }));
+  const recipeCategories = categoriesId.map(id => ({ category_id: id }));
+  const recipeSteps = steps.value.map((stepText, index) => ({ content: stepText, step_index: index }));
+  mutate({
+    user_id: userId,
+    title: state.title,
+    description: state.description,
+    prep_time_minutes: state.time,
+    images: recipeImages,
+    ingredients: recipeIngredients,
+    categories: recipeCategories,
+    steps: recipeSteps,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log("Form data ✅", event, event.data, images.value, steps);
+  submitingData.value = false;
+  addRecipeModal.value = false;
 }
 function removeImage(index: number) {
   images.value.splice(index, 1);
@@ -73,21 +115,55 @@ function removeStep(index: number) {
 }
 </script>
 
+<!-- add recipe -->
 <template>
-  <!-- add recipe -->
-  <UModal v-model:open="addRecipeModal" title="Add Recipes" :ui="{ footer: 'justify-end' }">
+  <UModal v-model:open="addRecipeModal" title="Add Recipes" description="Add ur recipies"
+    :ui="{ footer: 'justify-end' }" dismissiable="false">
     <UButton color="primary" label="+ Add Recipe" />
+    <template #header>
+      <div v-if="ingredientsLoading" class="flex items-center space-x-2 text-gray-500">
+        <Icon name="i-lucide-loader" class="w-5 h-5 animate-spin text-blue-500" />
+        <span>Loading ingredients...</span>
+      </div>
+
+      <div v-if="categoriesLoading" class="flex items-center space-x-2 text-gray-500">
+        <Icon name="i-lucide-loader" class="w-5 h-5 animate-spin text-green-500" />
+        <span>Loading categories...</span>
+      </div>
+
+      <div v-if="submitingData" class="flex items-center space-x-2 text-gray-500">
+        <Icon name="i-lucide-loader" class="w-5 h-5 animate-spin text-yellow-500" />
+        <span>Submitting data...</span>
+      </div>
+    </template>
     <template #body>
-      <UForm :schema="schema" :state="state" class="space-y-4" @submit="onSubmit">
+      <UForm v-if="!ingredientsLoading && !categoriesLoading" :schema="schema" :state="state" class="space-y-4"
+        @submit="onSubmit">
+        <UFormField label="Title" name="title">
+          <UInput v-model="state.title" />
+        </UFormField>
+        <UFormField label="Description" name="description">
+          <UInput v-model="state.description" />
+        </UFormField>
+
         <UFormField :label="state.time === 0 ? 'Time it talkes in minite' : `${state.time} min`" name="time">
-          <!-- <UInput v-model="state.time" type="number" /> -->
           <USlider v-model="state.time" tooltip size="xs" class="my-5" />
         </UFormField>
 
-        <UInputMenu v-model="state.ingredients" icon="i-heroicons-queue-list" multiple :items="ingredientOptions"
-          placeholder="ingredients" />
+        <!-- ingredient -->
+        <UFormField label="Ingredients" name="ingredients">
+          <UInputMenu v-model="state.ingredients" icon="i-lucide-list" multiple
+            :items="ingredientOptions.map(i => i.name)" placeholder="ingredients" />
+        </UFormField>
+
+        <!-- category  -->
+        <UFormField label="Categories" name="categories">
+          <UInputMenu v-model="state.categories" icon="i-lucide-layout-list" multiple
+            :items="categoryOptions.map(i => i.name)" value-attribute="id" label-attribute="name"
+            placeholder="category" />
+        </UFormField>
         <UFormField label="Images" name="images">
-          <UInput type="file" multiple accept="image/*" @change="handleImagesUpload" />
+          <UInput type="file" multiple accept="image/*" @change="handleImagesSelect" />
         </UFormField>
         <div class="flex flex-col gap-3 mt-3">
           <!-- Image Preview -->
@@ -104,7 +180,8 @@ function removeStep(index: number) {
           <div>
             <div class="flex justify-between items-center">
               <label class="font-semibold">Steps</label>
-              <UButton size="xs" color="neutral" variant="outline" class="cursor-pointer" @click="addStepModal = true">
+              <UButton size="xs" color="neutral" variant="outline" class="cursor-pointer" description="stn"
+                @click="addStepModal = true">
                 + Add Step
               </UButton>
             </div>
@@ -129,11 +206,11 @@ function removeStep(index: number) {
                 <UButton color="primary" label="Add Step" @click="addStep" />
               </template>
             </UModal>
-            <UButton type="submit" color="primary" @click="addRecipeModal = false">
-              Submit
-            </UButton>
           </div>
         </div>
+        <UButton type="submit" color="primary" class="cursor-pointer" :disabled="submitingData">
+          Submit
+        </UButton>
       </UForm>
     </template>
   </UModal>
