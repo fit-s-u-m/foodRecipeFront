@@ -17,6 +17,7 @@
     "@nuxtjs/axios": "^5.13.6",
     "@tailwindcss/vite": "^4.1.14",
     "apollo3-cache-persist": "^0.15.0",
+    "date-fns": "^4.1.0",
     "eslint": "^9.0.0",
     "graphql-tag": "^2.12.6",
     "nuxt": "^4.1.3",

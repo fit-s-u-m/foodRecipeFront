@@ -33,11 +33,6 @@ async function toggleEdit() {
   if (!editing.value) {
     if (!user.value)
       return;
-    // Save edits
-    // user.value.username = form.username;
-    // user.value.email = form.email;
-    // user.value.bio = form.bio;
-
     // update db
     const { mutate: updateUser } = useMutation(UPDATE_USER_BY_ID);
 
@@ -51,17 +46,31 @@ async function toggleEdit() {
 }
 const userLoading = ref(true);
 const uploading = ref(false);
+const stats = ref({
+  follower: null as null | number,
+  likes: null as null | number,
+  recipes: null as null | number,
+});
 
 onMounted(() => {
   const userId = localStorage.getItem("userId") || "";
   const shouldSkip = !userId || userId === "";
   const { result, loading: queryLoading } = useQuery(GET_USER_BY_ID, {
-    userId,
+    user_id: userId,
     skip: shouldSkip, // ⬅️ The key change: Skip if userId is null/empty
   });
   watchEffect(() => {
     if (!queryLoading.value && result.value) {
-      user.value = result.value.users[0];
+      const u = result.value.users[0];
+
+      user.value = {
+        ...u,
+        stats: {
+          recipes: u.recipes_aggregate?.aggregate?.count ?? 0,
+          likes: u.recipe_likes_aggregate?.aggregate?.count ?? 0,
+          followers: u.user_following_aggregate?.aggregate?.count ?? 0,
+        },
+      };
       userLoading.value = false;
 
       // update the form
@@ -145,8 +154,7 @@ async function changeAvatarURL(selectedFile: File) {
           <div
             class="p-4 bg-gradient-to-br from-indigo-100 to-indigo-50 dark:from-indigo-900/30 dark:to-indigo-800/20 rounded-xl text-center shadow hover:shadow-md transition">
             <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-              118
-              <!-- {{ user.stats.recipes }} -->
+              {{ user.stats.recipes }}
             </div>
             <div class="text-gray-600 dark:text-gray-300 text-sm">
               Recipes
@@ -156,8 +164,7 @@ async function changeAvatarURL(selectedFile: File) {
           <div
             class="p-4 bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-800/20 rounded-xl text-center shadow hover:shadow-md transition">
             <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              0234983
-              <!-- {{ user.stats.followers }} -->
+              {{ user.stats.followers }}
             </div>
             <div class="text-gray-600 dark:text-gray-300 text-sm">
               Followers
@@ -167,8 +174,7 @@ async function changeAvatarURL(selectedFile: File) {
           <div
             class="p-4 bg-gradient-to-br from-pink-100 to-pink-50 dark:from-pink-900/30 dark:to-pink-800/20 rounded-xl text-center shadow hover:shadow-md transition">
             <div class="text-2xl font-bold text-pink-600 dark:text-pink-400">
-              92387
-              <!-- {{ user.stats.likes }} -->
+              {{ user.stats.likes }}
             </div>
             <div class="text-gray-600 dark:text-gray-300 text-sm">
               Likes

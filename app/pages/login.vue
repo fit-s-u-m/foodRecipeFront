@@ -13,10 +13,10 @@ definePageMeta({
 
 const toast = useToast();
 const fields: AuthFormField[] = [{
-  name: "email",
-  type: "email",
-  label: "Email",
-  placeholder: "Enter your email",
+  name: "username",
+  type: "text",
+  label: "User name",
+  placeholder: "Enter your username",
   required: true,
 }, {
   name: "password",
@@ -24,31 +24,10 @@ const fields: AuthFormField[] = [{
   type: "password",
   placeholder: "Enter your password",
   required: true,
-}, {
-  name: "remember",
-  label: "Remember me",
-  type: "checkbox",
 }];
 
-const providers = [
-  {
-    label: "Google",
-    icon: "i-simple-icons-google",
-    onClick: () => {
-      toast.add({ title: "Google", description: "Login with Google" });
-    },
-  },
-  {
-    label: "GitHub",
-    icon: "i-simple-icons-github",
-    onClick: () => {
-      toast.add({ title: "GitHub", description: "Login with GitHub" });
-    },
-  },
-];
-
 const schema = z.object({
-  email: z.email("Invalid email"),
+  username: z.string("username is required").min(3, "Must be at least 3 characters"),
   password: z.string("Password is required").min(8, "Must be at least 8 characters"),
 });
 
@@ -56,11 +35,11 @@ type Schema = z.output<typeof schema>;
 const router = useRouter();
 
 function onSubmit(payload: FormSubmitEvent<Schema>) {
-  const email = payload.data.email;
+  const username = payload.data.username;
   const password = payload.data.password;
   const query = gql`
-    mutation Login($email: String!, $password: String!) {
-      Login(credential: { email: $email, password: $password }) {
+    mutation Login($username: String!, $password: String!) {
+      Login(credential: { username: $username, password: $password }) {
         userId
         accessToken
         refreshToken
@@ -68,23 +47,22 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
     }
   `;
 
-  const variables = { email, password };
+  const variables = { username, password };
 
-  const { mutate, onDone, onError } = useMutation(query, {
-    variables,
-  });
-  mutate({ email, password });
+  const { mutate, onDone, onError } = useMutation(query);
+  mutate(variables);
   onDone((payload) => {
-    console.log(payload.data.Login);
     const accessToken = payload.data.Login.accessToken;
     const refreshToken = payload.data.Login.refreshToken;
     const userId = payload.data.Login.userId;
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("userId", userId);
+    toast.add({ title: "Login Successful", description: "You have been logged in successfully.", color: "success" });
     navigateTo(("/"));
   });
   onError((err) => {
+    toast.add({ title: "Login Failed", description: "Invalid email or password.", color: "error" });
     console.error("Apollo-Error", err);
   });
 }
@@ -93,10 +71,8 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
 <template>
   <div class="flex flex-col items-center justify-center gap-4 p-4">
     <UPageCard class="w-full max-w-md">
-      <UAuthForm
-        :schema="schema" title="Login" description="Enter your credentials to access your account."
-        icon="i-lucide-user" :fields="fields" @submit="onSubmit"
-      >
+      <UAuthForm :schema="schema" title="Login" description="Enter your credentials to access your account."
+        icon="i-lucide-user" :fields="fields" @submit="onSubmit">
         <!-- Footer slot: add custom buttons -->
         <template #footer>
           <div class="flex justify-between items-center mt-2 cursor:pointer">

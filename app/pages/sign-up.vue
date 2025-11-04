@@ -8,29 +8,34 @@ definePageMeta({
 });
 
 const toast = useToast();
-const fields: AuthFormField[] = [{
-  name: "email",
-  type: "email",
-  label: "Email",
-  placeholder: "Enter your email",
-  required: true,
-}, {
-  name: "username",
-  type: "text",
-  label: "User Name",
-  placeholder: "Enter your username",
-  required: true,
-}, {
-  name: "password",
-  label: "Password",
-  type: "password",
-  placeholder: "Enter your password",
-  required: true,
-}, {
-  name: "remember",
-  label: "Remember me",
-  type: "checkbox",
-}];
+const fields: AuthFormField[] = [
+  {
+    name: "email",
+    type: "email",
+    label: "Email",
+    placeholder: "Enter your email",
+    required: true,
+  },
+  {
+    name: "username",
+    type: "text",
+    label: "User Name",
+    placeholder: "Enter your username",
+    required: true,
+  },
+  {
+    name: "password",
+    label: "Password",
+    type: "password",
+    placeholder: "Enter your password",
+    required: true,
+  },
+  {
+    name: "remember",
+    label: "Remember me",
+    type: "checkbox",
+  },
+];
 
 const providers = [{
   label: "Google",
@@ -55,6 +60,7 @@ const schema = z.object({
 type Schema = z.output<typeof schema>;
 
 function onSubmit(payload: FormSubmitEvent<Schema>) {
+  console.log(payload.data);
   const email = payload.data.email;
   const password = payload.data.password;
   const username = payload.data.username;
@@ -75,18 +81,9 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
     username,
   };
 
-  const config = useRuntimeConfig();
-  const adminSecret = config.public.hasuraAdminSecret;
-  const { mutate, onDone, onError } = useMutation(query, {
-    variables,
-    context: {
-      headers: {
-        "x-hasura-admin-secret": adminSecret,
-      },
-    },
-  });
+  const { mutate, onDone, onError } = useMutation(query);
 
-  mutate({ email, password, username });
+  mutate(variables);
   onDone((result) => {
     const data = result.data.createUser;
     localStorage.setItem("accessToken", data.accessToken);
@@ -105,10 +102,8 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
 <template>
   <div class="flex flex-col items-center justify-center gap-4 p-4">
     <UPageCard class="w-full max-w-md">
-      <UAuthForm
-        :schema="schema" title="Create an account" description="Sign up to get started."
-        icon="i-lucide-user-plus" :fields="fields" :submit="{ label: 'Sign up' }" @submit="onSubmit"
-      >
+      <UAuthForm :schema="schema" title="Create an account" description="Sign up to get started."
+        icon="i-lucide-user-plus" :fields="fields" :submit="{ label: 'Sign up' }" @submit="onSubmit">
         <template #description>
           Already have an account? <ULink to="/login" class="text-primary font-medium">
             Sign in

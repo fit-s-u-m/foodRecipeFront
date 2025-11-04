@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import * as z from "zod";
 
-import { CREATE_RECIPE, GET_CATEGORIES, GET_INGREDIENTS, INSERT_RECIPE } from "~/graphql/queries";
+import type { NameId } from "~/types/types";
+
+import { ADD_CATEGORY, ADD_INGREDIENT, GET_CATEGORIES, GET_INGREDIENTS, INSERT_RECIPE } from "~/graphql/queries";
 
 import { uploadToCloudinary } from "./lib/util";
 
@@ -32,17 +34,17 @@ const schema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
 });
-interface NameId {
-  id: string;
-  name: string;
-}
 const ingredientOptions = ref<NameId[]>([]);
 const ingredientsLoading = ref(true);
 const categoryOptions = ref<NameId[]>([]);
 const categoriesLoading = ref(true);
+let refetchCategory;
+let refetchIngredient;
 onMounted(() => {
-  const { result: ingredientsRes, loading: ingredientsLoadingRes } = useQuery(GET_INGREDIENTS);
-  const { result: categoriesRes, loading: categoriesLoadingRes } = useQuery(GET_CATEGORIES);
+  const { result: ingredientsRes, loading: ingredientsLoadingRes, refetch: refetchIng } = useQuery(GET_INGREDIENTS);
+  const { result: categoriesRes, loading: categoriesLoadingRes, refetch: refetchCat } = useQuery(GET_CATEGORIES);
+  refetchCategory = refetchCat;
+  refetchIngredient = refetchIng;
   watchEffect(() => {
     if (!ingredientsLoadingRes.value && ingredientsRes.value) {
       ingredientOptions.value = ingredientsRes.value.ingredients;
@@ -113,6 +115,24 @@ function addStep() {
 function removeStep(index: number) {
   steps.value.splice(index, 1);
 }
+const newIngredient = ref<string | null>(null);
+const addIngredientModal = ref(false);
+const { mutate: addIngredientMutate } = useMutation(ADD_INGREDIENT);
+async function addIngredient() {
+  await addIngredientMutate({ name: newIngredient.value });
+  refetchIngredient();
+  newIngredient.value = null;
+  addIngredientModal.value = false;
+}
+const newCategory = ref<string | null>(null);
+const addCategoryModal = ref(false);
+const { mutate: addCategoryMutate } = useMutation(ADD_CATEGORY);
+async function addCategory() {
+  await addCategoryMutate({ name: newCategory.value });
+  refetchCategory();
+  newCategory.value = null;
+  addCategoryModal.value = false;
+}
 </script>
 
 <!-- add recipe -->
@@ -152,16 +172,49 @@ function removeStep(index: number) {
 
         <!-- ingredient -->
         <UFormField label="Ingredients" name="ingredients">
-          <UInputMenu v-model="state.ingredients" icon="i-lucide-list" multiple
-            :items="ingredientOptions.map(i => i.name)" placeholder="ingredients" />
+          <div class="flex gap-3">
+            <UInputMenu v-model="state.ingredients" icon="i-lucide-list" multiple
+              :items="ingredientOptions.map(i => i.name)" placeholder="ingredients" />
+            <UButton size="xs" color="neutral" variant="outline" class="cursor-pointer" description="add ingredients"
+              @click="addIngredientModal = true">
+              +
+            </UButton>
+          </div>
         </UFormField>
+
+        <UModal v-model:open="addIngredientModal" title="Add ingredient" :ui="{ footer: 'justify-end' }">
+          <template #body>
+            <UTextarea v-model="newIngredient" placeholder="ingredient to add" :rows="1" class="w-full" highlight
+              aria-autocomplete="both" />
+          </template>
+          <template #footer>
+            <UButton color="primary" label="Add" @click="addIngredient" />
+          </template>
+        </UModal>
 
         <!-- category  -->
         <UFormField label="Categories" name="categories">
-          <UInputMenu v-model="state.categories" icon="i-lucide-layout-list" multiple
-            :items="categoryOptions.map(i => i.name)" value-attribute="id" label-attribute="name"
-            placeholder="category" />
+          <div class="flex gap-3">
+            <UInputMenu v-model="state.categories" icon="i-lucide-layout-list" multiple
+              :items="categoryOptions.map(i => i.name)" value-attribute="id" label-attribute="name"
+              placeholder="category" />
+            <UButton size="xs" color="neutral" variant="outline" class="cursor-pointer" description="add category"
+              @click="addCategoryModal = true">
+              +
+            </UButton>
+          </div>
         </UFormField>
+
+        <UModal v-model:open="addCategoryModal" title="Add Categories" :ui="{ footer: 'justify-end' }">
+          <template #body>
+            <UTextarea v-model="newCategory" placeholder="Category to add" :rows="1" class="w-full" highlight
+              aria-autocomplete="both" />
+          </template>
+          <template #footer>
+            <UButton color="primary" label="Add" @click="addCategory" />
+          </template>
+        </UModal>
+
         <UFormField label="Images" name="images">
           <UInput type="file" multiple accept="image/*" @change="handleImagesSelect" />
         </UFormField>

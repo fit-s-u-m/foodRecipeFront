@@ -9,6 +9,9 @@ export default defineNuxtConfig({
   app: {
     baseURL: "/foodRecipeFront/", // 👈 your repo name here!
   },
+  build: {
+    transpile: ["apollo3-cache-persist"],
+  },
   vite: {
     base: "/foodRecipeFront/",
     plugins: [tailwindcss()],

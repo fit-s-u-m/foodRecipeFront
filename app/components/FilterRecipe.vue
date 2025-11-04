@@ -1,55 +1,91 @@
 <script setup lang="ts">
-import type { FILTER } from "../types/types.ts";
+import { GET_CATEGORIES, GET_INGREDIENTS } from "~/graphql/queries.js";
+
+import type { FILTER, NameId } from "../types/types.ts";
 
 interface Props {
-  onFilter: (filter: FILTER) => void; // optional
+  refreshOnFilter: (fillter: FILTER) => void; // optional
 }
+const { refreshOnFilter } = defineProps<Props>();
 
-const { onFilter } = defineProps<Props>();
+const router = useRouter();
+const route = useRoute();
+
 const isFilterModalOpen = ref(false);
 const filters = ref<FILTER>({
   excludeIngredients: [],
-  category: "",
+  categories: [] as string[],
   prepTime: [2, 300],
-  sortBy: "latest",
   bookmarked: false,
 });
-const categories = [
-  { label: "Breakfast", value: "breakfast" },
-  { label: "Lunch", value: "lunch" },
-  { label: "Dinner", value: "dinner" },
-  { label: "Dessert", value: "dessert" },
-  { label: "Drinks", value: "drinks" },
-];
+;
 
-const sortOptions = [
-  { label: "Latest", value: "latest" },
-  { label: "Oldest", value: "oldest" },
-  { label: "Most Popular", value: "popular" },
-];
 function resetFilters() {
   filters.value = {
     excludeIngredients: [],
-    category: "",
+    categories: [],
     prepTime: [2, 300],
-    sortBy: "latest",
     bookmarked: false,
   };
+  router.replace({
+    query: {
+      ...route.query, // keep other params
+      excludeIngredients: [],
+      categories: [],
+      bookmarked: undefined,
+      prepTime: undefined,
+    },
+  });
+  refreshOnFilter(filters.value);
+  isFilterModalOpen.value = false;
 }
-const ingredientOptions = [
-  "Peanuts",
-  "Milk",
-  "Shrimp",
-  "Gluten",
-  "Eggs",
-  "Soy",
-  "Fish",
-  "Shellfish",
-  "Nuts",
-  "Dairy",
-  "Wheat",
-  "Sesame",
-];
+const ingredientOptions = ref<NameId[]>([]);
+const ingredientsLoading = ref(true);
+const categoryOptions = ref<NameId[]>([]);
+const categoriesLoading = ref(true);
+onMounted(() => {
+  const { result: ingredientsRes, loading: ingredientsLoadingRes } = useQuery(GET_INGREDIENTS);
+  const { result: categoriesRes, loading: categoriesLoadingRes } = useQuery(GET_CATEGORIES);
+  const query = route.query;
+  filters.value = {
+    bookmarked: !!query.bookmarked,
+    prepTime: query.prepTime ? query.prepTime : [2, 300],
+    excludeIngredients: route.query.excludeIngredients
+      ? Array.isArray(route.query.excludeIngredients)
+        ? route.query.excludeIngredients
+        : [route.query.excludeIngredients]
+      : [],
+    categories: route.query.categories
+      ? Array.isArray(route.query.categories)
+        ? route.query.categories
+        : [route.query.categories]
+      : [],
+  };
+
+  watchEffect(() => {
+    if (!ingredientsLoadingRes.value && ingredientsRes.value) {
+      ingredientOptions.value = ingredientsRes.value.ingredients.map(i => i.name);
+      ingredientsLoading.value = false;
+    }
+    if (!categoriesLoadingRes.value && categoriesRes.value) {
+      categoryOptions.value = categoriesRes.value.categories.map(i => i.name);
+      categoriesLoading.value = false;
+    }
+  });
+});
+function onFilter(filter: FILTER) {
+  router.replace({
+    query: {
+      ...route.query, // keep other params
+      excludeIngredients: filter.excludeIngredients,
+      categories: filter.categories,
+      bookmarked: filter.bookmarked ? "true" : undefined,
+      prepTime: filter.prepTime[0] === 2 && filter.prepTime[1] === 300 ? undefined : filter.prepTime,
+    },
+  });
+  refreshOnFilter(filter);
+  isFilterModalOpen.value = false;
+}
 </script>
 
 <template>
@@ -64,8 +100,8 @@ const ingredientOptions = [
           <h3 class="font-semibold text-lg mb-2">
             Exclude Ingredients
           </h3>
-          <UInputMenu v-model="filters.excludeIngredients" icon="i-lucide-no-symbol" multiple :items="ingredientOptions"
-            placeholder="" />
+          <UInputMenu v-model="filters.excludeIngredients" icon="i-lucide-circle-slash" multiple
+            :items="ingredientOptions" placeholder="" />
 
           <p class="text-xs text-gray-500 mt-1">
             Add ingredients you want to avoid (for allergies or dislikes)
@@ -77,7 +113,8 @@ const ingredientOptions = [
           <h3 class="font-semibold text-lg mb-2">
             Category
           </h3>
-          <USelect v-model="filters.category" :items="categories" placeholder="Select category" />
+          <UInputMenu v-model="filters.categories" icon="i-lucide-layout-list" multiple :items="categoryOptions"
+            placeholder="Select Category" />
         </div>
 
         <!-- Preparation Time -->
@@ -86,14 +123,6 @@ const ingredientOptions = [
             Time {{ filters.prepTime[0] }}-{{ filters.prepTime[1] }} (minutes)
           </h3>
           <USlider v-model="filters.prepTime" tooltip size="sm" />
-        </div>
-
-        <!-- Sort By -->
-        <div>
-          <h3 class="font-semibold text-lg mb-2">
-            Sort By
-          </h3>
-          <USelect v-model="filters.sortBy" :items="sortOptions" placeholder="Sort recipes" />
         </div>
 
         <!-- Bookmarked Only -->

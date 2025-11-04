@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-import { GET_USER_BY_ID } from "~/graphql/queries";
+import type { NameId } from "~/types/types";
+
+import { buildWhere } from "~/components/lib/util";
+import { GET_CATEGORIES, GET_CHEFS_AND_ID, GET_INGREDIENTS, GET_USER_BY_ID } from "~/graphql/queries";
 
 const items = ref([
   { label: "Home", icon: "i-lucide-home", to: "/" },
@@ -21,37 +24,22 @@ const groups = ref([
   {
     id: "chefs",
     label: "Chefs",
-    items: [
-      {
-        label: "Benjamin Canac",
-        suffix: "benjamincanac",
-        avatar: { src: "https://github.com/benjamincanac.png" },
-      },
-      {
-        label: "Sébastien Chopin",
-        suffix: "atinux",
-        avatar: { src: "https://github.com/atinux.png" },
-      },
-    ],
+    items: [],
   },
   {
     id: "recipes",
     label: "Recipes",
-    items: [
-      { label: "Spaghetti Carbonara", suffix: "Italian", to: "/recipe/1" },
-      { label: "Sushi Rolls", suffix: "Japanese" },
-      { label: "Chicken Curry", suffix: "Indian" },
-    ],
+    items: [],
+  },
+  {
+    id: "categories",
+    label: "Categories",
+    items: [],
   },
   {
     id: "ingredients",
     label: "Ingredients",
-    items: [
-      { label: "Tomato" },
-      { label: "Garlic" },
-      { label: "Olive Oil" },
-      { label: "Basil" },
-    ],
+    items: [],
   },
 ]);
 const isMobile = ref(false);
@@ -66,8 +54,6 @@ interface User {
   avatar_url: string;
   bio: string;
   email: string;
-  display_name: string;
-  created_at: string;
 }
 interface Recipe {
   recipe_id: number;
@@ -81,8 +67,8 @@ const recipes = ref<Recipe[]>([]);
 const userLoading = ref(true);
 const recipeLoading = ref(true);
 const GET_ALL_RECIPES = gql`
-  query MyQuery {
-    recipes(limit:10) {
+  query MyQuery($where:recipes_bool_exp,$limit: Int) {
+    recipes(limit:$limit,where:$where) {
       recipe_id
       title
       user{
@@ -91,27 +77,62 @@ const GET_ALL_RECIPES = gql`
     }
   }
 `;
+const ingredientOptions = ref<NameId[]>([]);
+const categoryOptions = ref<NameId[]>([]);
+const loading = ref(false);
+
+let refetchChefs: any;
+let refetchRecipes: any;
+let refetchIngredients: any;
+let refetchCategories: any;
+
+const chefsOption = ref<{ avatar_url: string; username: string; user_id: number }[]>([]);
 
 onMounted(() => {
+  loading.value = true;
   checkScreen();
   window.addEventListener("resize", checkScreen);
 
   const userId = localStorage.getItem("userId") || "";
   const shouldSkip = !userId || userId === "";
-  console.log(userId);
 
-  const { result, loading: queryLoading } = useQuery(GET_USER_BY_ID, {
-    userId,
-    skip: shouldSkip, // ⬅️ The key change: Skip if userId is null/empty
+  const { result } = useQuery(GET_USER_BY_ID, {
+    user_id: userId,
   });
-  const { result: allRecepies, loading: recipesLoading } = useQuery(GET_ALL_RECIPES);
-
-  watch(queryLoading, () => {
-    if (!queryLoading.value) {
-      user.value = result.value.users[0];
-      console.log("userId", user.value);
-      userLoading.value = false;
+  const where = {};
+  const { result: chefsResult, loading: chefsLoading, refetch: refetch_chefs } = useQuery(GET_CHEFS_AND_ID, { limit: 2, where });
+  const { result: allRecepies, loading: recipesLoading, refetch: refetch_recipes } = useQuery(GET_ALL_RECIPES, { limit: 5, where });
+  const { result: ingredientsRes, loading: ingredientsLoadingRes, refetch: refetch_ingredients } = useQuery(GET_INGREDIENTS, { limit: 5, where });
+  const { result: categoriesRes, loading: categoriesLoadingRes, refetch: refetch_categories } = useQuery(GET_CATEGORIES, { limit: 5, where });
+  refetchCategories = refetch_categories;
+  refetchRecipes = refetch_recipes;
+  refetchIngredients = refetch_ingredients;
+  refetchChefs = refetch_chefs;
+  watchEffect(() => {
+    if (!ingredientsLoadingRes.value && ingredientsRes.value) {
+      ingredientOptions.value = ingredientsRes.value.ingredients.map(i => i.name);
+      loading.value = false;
     }
+    if (!categoriesLoadingRes.value && categoriesRes.value) {
+      categoryOptions.value = categoriesRes.value.categories.map(i => i.name);
+      loading.value = false;
+    }
+    if (!chefsLoading.value && chefsResult.value) {
+      chefsOption.value = chefsResult.value.users.map((u: any) => ({
+        avatar_url: u.avatar_url,
+        user_id: u.user_id,
+        username: u.username,
+        email: u.email,
+      }));
+      console.log("chefs", chefsOption.value);
+      loading.value = false;
+    }
+  });
+
+  watch(result, (newValue) => {
+    console.log("userId", newValue);
+    user.value = newValue.users[0];
+    userLoading.value = false;
   });
   watch(recipesLoading, () => {
     if (!recipesLoading.value) {
@@ -129,24 +150,100 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("resize", checkScreen);
 });
+async function logout() {
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("accessToken");
+  await navigateTo("/login");
+}
+watch(searchTerm, async () => {
+  if (refetchCategories && refetchChefs && refetchIngredients && refetchRecipes) {
+    const filter = { searchTerm: searchTerm.value };
+    // Await all refetches and update the reactive data sources
+    const [categoriesRes, chefsRes, ingredientsRes, recipesRes] = await Promise.all([
+      refetchCategories({ limit: 5, where: buildWhere({ ...filter, searchItem: "category" }) }),
+      refetchChefs({ limit: 5, where: buildWhere({ ...filter, searchItem: "chef" }) }),
+      refetchIngredients({ limit: 5, where: buildWhere({ ...filter, searchItem: "ingredients" }) }),
+      refetchRecipes({ limit: 5, where: buildWhere({ ...filter, searchItem: "recipe" }) }),
+    ]);
+    console.log("Refetched Results:", { categoriesRes, chefsRes, ingredientsRes, recipesRes });
 
-const updatedGroup = computed(() => {
-  const newGroup = [];
-  for (const item of groups.value) {
-    if (item.id === "recipes") {
-      item.items = recipes.value
-        ? recipes.value.map(recipe => ({
-            label: recipe.title,
-            suffix: `By: ${recipe.user.username}`,
-            to: `/recipe/${recipe.recipe_id}`,
-          }))
-        : [];
+    if (categoriesRes.data) {
+      categoryOptions.value = categoriesRes.data.categories.map(c => c.name);
     }
-    console.log({ item }, recipes.value);
-    newGroup.push(item);
+    if (chefsRes.data) {
+      chefsOption.value = chefsRes.data.users.map(u => ({
+        avatar_url: u.avatar_url,
+        username: u.username,
+        email: u.email,
+        user_id: u.user_id,
+      }));
+    }
+    if (ingredientsRes.data) {
+      ingredientOptions.value = ingredientsRes.data.ingredients.map(i => i.name);
+    }
+    if (recipesRes.data) {
+      recipes.value = recipesRes.data.recipes;
+      console.log("recipes", recipes.value);
+    }
   }
-  return newGroup;
 });
+watch(
+  [recipes, ingredientOptions, categoryOptions, chefsOption],
+  () => {
+    groups.value = groups.value.map((item) => {
+      if (item.id === "recipes") {
+        return {
+          ...item,
+          items: recipes.value
+            ? recipes.value.map(recipe => ({
+                label: recipe.title,
+                suffix: `By: ${recipe.user.username}`,
+                to: `/recipe/${recipe.recipe_id}`,
+              }))
+            : [],
+        };
+      }
+
+      if (item.id === "ingredients") {
+        return {
+          ...item,
+          items: ingredientOptions.value
+            ? ingredientOptions.value.map(i => ({
+                label: i,
+                to: `/recipes?ingredients=${i}`,
+              }))
+            : [],
+        };
+      }
+
+      if (item.id === "categories") {
+        return {
+          ...item,
+          items: categoryOptions.value
+            ? categoryOptions.value.map(i => ({
+                label: i,
+                to: `/recipes?categories=${i}`,
+              }))
+            : [],
+        };
+      }
+
+      if (item.id === "chefs") {
+        return {
+          ...item,
+          items: chefsOption.value
+            ? chefsOption.value.map(i => ({
+                label: i.username,
+                suffix: i.email,
+                avatar: { src: i.avatar_url },
+                to: `/chef/${i.user_id}`,
+              }))
+            : [],
+        };
+      }
+    });
+  },
+);
 const showSlideOver = ref(false);
 const showSearch = ref(false);
 </script>
@@ -162,11 +259,14 @@ const showSearch = ref(false);
 
         <div class="flex gap-5  items-center">
           <UColorModeSwitch />
+          <UButton variant="outline" size="sm" class="cursor-pointer" @click="logout">
+            Logout
+          </UButton>
           <UAvatar class="cursor-pointer" :src="user && user.avatar_url ? user.avatar_url : ''"
             :alt="user && user.username ? user.username.toUpperCase() : ''" size="xl" @click="navigateTo('/profile')" />
         </div>
 
-        <UDashboardSearch v-model:search-term="searchTerm" shortcut="meta_k" :groups="updatedGroup" :color-mode="false"
+        <UDashboardSearch v-model:search-term="searchTerm" shortcut="meta_k" :groups="groups" :color-mode="false"
           placeholder="Search for chefs, recipes, or ingredients..." :fuse="{ resultLimit: 42 }" />
       </div>
       <slot />
@@ -193,7 +293,12 @@ const showSearch = ref(false);
               <UNavigationMenu v-model="active" color="secondary" class="justify-center" :items="items"
                 orientation="vertical" />
             </div>
-            <UColorModeSwitch />
+            <div>
+              <UColorModeSwitch />
+              <UButton variant="outline" @click="logout">
+                Logout
+              </UButton>
+            </div>
           </div>
         </template>
       </USlideover>

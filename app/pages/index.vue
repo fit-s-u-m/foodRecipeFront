@@ -108,7 +108,7 @@ const links: ButtonProps[] = [
     variant: "subtle",
   },
   {
-    label: "Learn Cooking Tips",
+    label: "Meet out top chefs",
     to: "/chefs",
     color: "primary",
     variant: "subtle",

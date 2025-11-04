@@ -1,69 +1,27 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-// Mock chefs data
-const chefs = ref([
-  {
-    id: 1,
-    name: "John Doe",
-    profileImage: "/images/chef1.jpg",
-    follower: 97234,
-    recipes: [
-      { id: 1, title: "Spaghetti Carbonara", image: "/images/food6.jpeg" },
-      { id: 2, title: "Avocado Toast", image: "/images/food7.jpg" },
-      { id: 3, title: "Chicken Curry", image: "/images/food8.jpg" },
-    ],
-    following: false,
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    profileImage: "/images/chef2.jpg",
-    follower: 39206,
-    recipes: [
-      { id: 4, title: "Beef Stir Fry", image: "/images/food9.jpg" },
-      { id: 5, title: "Pancakes", image: "/images/food10.jpg" },
-      { id: 6, title: "Caprese Salad", image: "/images/food11.jpg" },
-    ],
-    following: true,
-  },
-  {
-    id: 3,
-    name: "Ali Hassan",
-    profileImage: "/images/chef3.jpg",
-    follower: 54240,
-    recipes: [
-      { id: 7, title: "Shrimp Tacos", image: "/images/food12.jpg" },
-      { id: 8, title: "Chicken Wrap", image: "/images/food8.jpg" },
-      { id: 9, title: "Veggie Bowl", image: "/images/food7.jpg" },
-    ],
-    following: false,
-  },
-  {
-    id: 4,
-    name: "Ali Hassan",
-    profileImage: "/images/chef4.jpg",
-    follower: 74240,
-    recipes: [
-      { id: 7, title: "Shrimp Tacos", image: "/images/food4.webp" },
-      { id: 8, title: "Chicken Wrap", image: "/images/food5.webp" },
-      { id: 9, title: "Veggie Bowl", image: "/images/food7.jpg" },
-    ],
-    following: false,
-  },
-  {
-    id: 5,
-    name: "Ali Hassan",
-    profileImage: "/images/chef5.jpg",
-    follower: 19240,
-    recipes: [
-      { id: 7, title: "Shrimp Tacos", image: "/images/food.webp" },
-      { id: 8, title: "Chicken Wrap", image: "/images/food2.webp" },
-      { id: 9, title: "Veggie Bowl", image: "/images/food3.webp" },
-    ],
-    following: false,
-  },
-]);
+import type { GET_CHEFS_QUERY } from "~/types/types";
+
+import { GET_CHEFS } from "~/graphql/queries";
+
+interface RECIPE {
+  id: number;
+  image: string;
+  title: string;
+  description: string;
+  time: number;
+}
+
+interface CHEF {
+  id: number;
+  name: string;
+  recipes: RECIPE[];
+  follower: number;
+  avarageRating: number | null;
+  following: boolean;
+  profileImage: string | null;
+}
 
 function toggleFollow(chef: any) {
   chef.following = !chef.following;
@@ -74,6 +32,41 @@ function goToEachChefPage(index: number) {
 function goToEachRecipePage(index: number) {
   navigateTo(`/recipe/${index}`);
 }
+const chefs = ref<CHEF[]>([]);
+const userLoading = ref(false);
+onMounted(() => {
+  const userId = localStorage.getItem("userId") || "";
+  const shouldSkip = !userId || userId === "";
+  userLoading.value = true;
+  const { result } = useQuery<GET_CHEFS_QUERY>(GET_CHEFS, {
+    user_id: userId,
+    skip: shouldSkip,
+  });
+  watch(
+    result,
+    (value) => {
+      if (value && value.users) {
+        chefs.value = value.users.map(user => ({
+          name: user.username,
+          id: user.user_id,
+          recipes: (user.recipes || []).map(r => ({
+            id: r.recipe_id,
+            image: r.recipe_images?.[0]?.url ?? "",
+            title: r.title,
+            description: r.description,
+            time: r.prep_time_minutes,
+          })),
+          follower: user.user_following_aggregate?.aggregate?.count ?? 0,
+          avarageRating: user.recipe_ratings_aggregate?.aggregate?.avg?.rating ?? null,
+          following: (user.user_following?.length ?? 0) > 0,
+          profileImage: user.avatar_url ?? "",
+        }));
+        userLoading.value = false;
+      }
+    },
+    { immediate: true }, // 🔑 ensures it runs immediately if result.value already has data
+  );
+});
 </script>
 
 <template class="overflow-y-scroll">
@@ -81,13 +74,17 @@ function goToEachRecipePage(index: number) {
     <h1 class="text-3xl font-bold mb-8 text-center">
       👩‍🍳 Our Chefs
     </h1>
+    <div v-if="userLoading" class="flex items-center space-x-2 text-gray-500">
+      <Icon name="i-lucide-loader" class="w-5 h-5 animate-spin text-blue-500" />
+      <span>Loading Chefs...</span>
+    </div>
 
     <div class="flex flex-col gap-6">
       <div v-for="chef in chefs" :key="chef.id"
         class="flex flex-col md:flex-row cursor-pointer items-start md:items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition"
         @click="goToEachChefPage(chef.id)">
         <!-- Chef profile -->
-        <img :src="chef.profileImage" alt="Chef profile" class="w-20 h-20 rounded-full object-cover">
+        <img :src="chef.profileImage || ''" alt="Chef profile" class="w-20 h-20 rounded-full object-cover">
         <div class="flex-1">
           <div class="flex justify-between items-center">
             <div>
@@ -109,10 +106,10 @@ function goToEachRecipePage(index: number) {
           <!-- Horizontal scroll of top recipes -->
           <div class="mt-3 flex gap-3 overflow-x-auto py-2">
             <div v-for="recipe in chef.recipes" :key="recipe.id"
-              class="flex-shrink-0 w-32 h-32 rounded-lg overflow-hidden shadow hover:shadow-lg transition cursor-pointer"
+              class="relative flex-shrink-0 w-32 h-32 rounded-lg overflow-hidden shadow hover:shadow-lg transition cursor-pointer"
               @click="goToEachRecipePage(recipe.id)">
               <img :src="recipe.image" :alt="recipe.title" class="w-full h-full object-cover">
-              <p class="text-sm mt-1 text-center px-1">
+              <p class="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-1">
                 {{ recipe.title }}
               </p>
             </div>
