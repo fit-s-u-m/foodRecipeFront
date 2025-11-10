@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { refDebounced } from "@vueuse/core";
 import { ref } from "vue";
 
 import type { NameId } from "~/types/types";
 
+import { useAuthQuery } from "~/components/composeable/UseAuthQuery";
 import { buildWhere } from "~/components/lib/util";
 import { GET_CATEGORIES, GET_CHEFS_AND_ID, GET_INGREDIENTS, GET_USER_BY_ID } from "~/graphql/queries";
 
@@ -14,6 +16,7 @@ const items = ref([
 
 const active = ref("0");
 const searchTerm = ref("");
+const searchTermDebounced = refDebounced(searchTerm, 500);
 
 defineShortcuts({
   1: () => (active.value = "0"),
@@ -96,14 +99,12 @@ onMounted(() => {
   const userId = localStorage.getItem("userId") || "";
   const shouldSkip = !userId || userId === "";
 
-  const { result } = useQuery(GET_USER_BY_ID, {
-    user_id: userId,
-  });
+  const { result } = useAuthQuery(GET_USER_BY_ID, { user_id: userId });
   const where = {};
-  const { result: chefsResult, loading: chefsLoading, refetch: refetch_chefs } = useQuery(GET_CHEFS_AND_ID, { limit: 2, where });
-  const { result: allRecepies, loading: recipesLoading, refetch: refetch_recipes } = useQuery(GET_ALL_RECIPES, { limit: 5, where });
-  const { result: ingredientsRes, loading: ingredientsLoadingRes, refetch: refetch_ingredients } = useQuery(GET_INGREDIENTS, { limit: 5, where });
-  const { result: categoriesRes, loading: categoriesLoadingRes, refetch: refetch_categories } = useQuery(GET_CATEGORIES, { limit: 5, where });
+  const { result: chefsResult, loading: chefsLoading, refetch: refetch_chefs } = useAuthQuery(GET_CHEFS_AND_ID, { limit: 2, where });
+  const { result: allRecepies, loading: recipesLoading, refetch: refetch_recipes } = useAuthQuery(GET_ALL_RECIPES, { limit: 5, where });
+  const { result: ingredientsRes, loading: ingredientsLoadingRes, refetch: refetch_ingredients } = useAuthQuery(GET_INGREDIENTS, { limit: 5, where });
+  const { result: categoriesRes, loading: categoriesLoadingRes, refetch: refetch_categories } = useAuthQuery(GET_CATEGORIES, { limit: 5, where });
   refetchCategories = refetch_categories;
   refetchRecipes = refetch_recipes;
   refetchIngredients = refetch_ingredients;
@@ -132,10 +133,11 @@ onMounted(() => {
   watch(result, (newValue) => {
     console.log("userId", newValue);
     user.value = newValue.users[0];
+    localStorage.setItem("userRole", user?.value?.role || "");
     userLoading.value = false;
   });
   watch(recipesLoading, () => {
-    if (!recipesLoading.value) {
+    if (!recipesLoading.value && allRecepies.value) {
       recipes.value = allRecepies.value.recipes;
       console.log("All", recipes.value, Array.isArray(recipes.value));
       recipeLoading.value = false;
@@ -151,13 +153,12 @@ onUnmounted(() => {
   window.removeEventListener("resize", checkScreen);
 });
 async function logout() {
-  localStorage.removeItem("refreshToken");
   localStorage.removeItem("accessToken");
   await navigateTo("/login");
 }
-watch(searchTerm, async () => {
+watch(searchTermDebounced, async (newSearchItem) => {
   if (refetchCategories && refetchChefs && refetchIngredients && refetchRecipes) {
-    const filter = { searchTerm: searchTerm.value };
+    const filter = { searchTerm: newSearchItem };
     // Await all refetches and update the reactive data sources
     const [categoriesRes, chefsRes, ingredientsRes, recipesRes] = await Promise.all([
       refetchCategories({ limit: 5, where: buildWhere({ ...filter, searchItem: "category" }) }),
@@ -196,10 +197,10 @@ watch(
           ...item,
           items: recipes.value
             ? recipes.value.map(recipe => ({
-                label: recipe.title,
-                suffix: `By: ${recipe.user.username}`,
-                to: `/recipe/${recipe.recipe_id}`,
-              }))
+              label: recipe.title,
+              suffix: `By: ${recipe.user.username}`,
+              to: `/recipe/${recipe.recipe_id}`,
+            }))
             : [],
         };
       }
@@ -209,9 +210,9 @@ watch(
           ...item,
           items: ingredientOptions.value
             ? ingredientOptions.value.map(i => ({
-                label: i,
-                to: `/recipes?ingredients=${i}`,
-              }))
+              label: i,
+              to: `/recipes?ingredients=${i}`,
+            }))
             : [],
         };
       }
@@ -221,9 +222,9 @@ watch(
           ...item,
           items: categoryOptions.value
             ? categoryOptions.value.map(i => ({
-                label: i,
-                to: `/recipes?categories=${i}`,
-              }))
+              label: i,
+              to: `/recipes?categories=${i}`,
+            }))
             : [],
         };
       }
@@ -233,11 +234,11 @@ watch(
           ...item,
           items: chefsOption.value
             ? chefsOption.value.map(i => ({
-                label: i.username,
-                suffix: i.email,
-                avatar: { src: i.avatar_url },
-                to: `/chef/${i.user_id}`,
-              }))
+              label: i.username,
+              suffix: i.email,
+              avatar: { src: i.avatar_url },
+              to: `/chef/${i.user_id}`,
+            }))
             : [],
         };
       }

@@ -52,7 +52,7 @@ export const GET_CHEFS_AND_ID = gql`
       limit: $limit
       where: {
         _and: [
-          { recipes_aggregate: { count: { predicate: { _gt: 0 } } } }
+          {role: {_eq: "chef"}}
           $where
         ]
       }
@@ -70,6 +70,7 @@ query GetUserById($user_id: uuid!){
  users(where: {id: {_eq: $user_id}}) {
     id
     avatar_url
+    role
     bio
     email
     username
@@ -105,7 +106,6 @@ export const GET_RECIPES = gql`
         },
         where: $where
     ) {
-      id
       title
       description
       prep_time_minutes
@@ -288,6 +288,7 @@ mutation InsertRecipe(
   $user_id: uuid!,
   $title: String!,
   $description: String!,
+  $featured_image: String!,
   $prep_time_minutes: Int!,
   $images: [recipe_images_insert_input!] = [],
   $ingredients: [recipe_ingredients_insert_input!] = [],
@@ -299,11 +300,12 @@ mutation InsertRecipe(
       user_id: $user_id
       title: $title
       description: $description
+      featured_image: $featured_image
       prep_time_minutes: $prep_time_minutes
-      recipe_images: { data: $images }         # array of { url: "..." }
-      recipe_ingredients: { data: $ingredients } # array of { ingredient_id: "..." }
-      recipe_categories: { data: $categories }   # array of { category_id: "..." }
-      recipe_steps: { data: $steps }             # array of { step_text: "..." }
+      recipe_images: { data: $images }         
+      recipe_ingredients: { data: $ingredients }
+      recipe_categories: { data: $categories } 
+      recipe_steps: { data: $steps }          
     }
   ) {
     returning {
@@ -353,10 +355,12 @@ query MyQuery {
 
 // id: { _neq: $user_id }
 export const GET_CHEFS = gql`
-  query GetChefs($user_id: uuid!) {
+  query GetChefs($user_id: uuid!,$limit: Int, $offset: Int) {
     users(
+      limit: $limit
+      offset: $offset
       where: {
-        recipes_aggregate: { count: { predicate: { _gt: 0 } } }
+        role: {_eq: "chef"}
       }
     ) {
       id
@@ -580,5 +584,14 @@ query myquery ( $where: recipes_bool_exp){
         count
       }
     }
+}
+`;
+export const TOTAL_CHEFS = gql`
+query myquery {
+ users_aggregate(where: {role: {_eq: "chef"}}) {
+    aggregate{
+      count
+    }
+  }
 }
 `;

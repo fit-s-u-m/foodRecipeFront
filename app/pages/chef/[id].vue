@@ -4,6 +4,8 @@ import { useRoute } from "vue-router";
 
 import type { GET_CHEFS_QUERY, GetChefProfileResponse, GetChefResponse } from "~/types/types";
 
+import { useAuthMutation } from "~/components/composeable/UseAuthMutation";
+import { useAuthQuery } from "~/components/composeable/UseAuthQuery";
 import { FOLLOW_CHEF, GET_CHEF, UNFOLLOW_CHEF } from "~/graphql/queries";
 
 const route = useRoute();
@@ -46,7 +48,7 @@ onMounted(() => {
   const userId = localStorage.getItem("userId") || "";
   const shouldSkip = !userId || userId === "";
 
-  const { result, refetch } = useQuery<GetChefResponse>(GET_CHEF, {
+  const { result, refetch } = useAuthQuery<GetChefResponse>(GET_CHEF, {
     current_user_id: userId,
     chef_id: chefId,
     skip: shouldSkip,
@@ -97,8 +99,8 @@ onMounted(() => {
 });
 // Loading state for the button
 const followLoading = ref(false);
-const { mutate: followMutate } = useMutation(FOLLOW_CHEF);
-const { mutate: unfollowMutate } = useMutation(UNFOLLOW_CHEF);
+const { run: followMutate } = useAuthMutation(FOLLOW_CHEF);
+const { run: unfollowMutate } = useAuthMutation(UNFOLLOW_CHEF);
 
 // Function to toggle follow/unfollow
 async function toggleFollow() {

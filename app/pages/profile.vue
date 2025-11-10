@@ -3,6 +3,8 @@ import { onMounted, reactive, ref } from "vue";
 
 import type { USER } from "~/types/types";
 
+import { useAuthMutation } from "~/components/composeable/UseAuthMutation";
+import { useAuthQuery } from "~/components/composeable/UseAuthQuery";
 import { uploadToCloudinary } from "~/components/lib/util";
 import { GET_USER_BY_ID, UPDATE_USER_AVATAR_BY_ID, UPDATE_USER_BY_ID } from "~/graphql/queries";
 
@@ -20,6 +22,7 @@ const avatarPreview = ref<string | null>(null);
 async function handleAvatarChange(e: Event) {
   const target = e.target as HTMLInputElement;
   const file = target.files?.[0];
+  console.log({ file });
   if (!file)
     return;
   changeAvatarURL(file);
@@ -33,8 +36,9 @@ async function toggleEdit() {
   if (!editing.value) {
     if (!user.value)
       return;
+
     // update db
-    const { mutate: updateUser } = useMutation(UPDATE_USER_BY_ID);
+    const { run: updateUser } = useAuthMutation(UPDATE_USER_BY_ID);
 
     await updateUser({
       user_id: user.value.id,
@@ -46,22 +50,18 @@ async function toggleEdit() {
 }
 const userLoading = ref(true);
 const uploading = ref(false);
-const stats = ref({
-  follower: null as null | number,
-  likes: null as null | number,
-  recipes: null as null | number,
-});
-
 onMounted(() => {
   const userId = localStorage.getItem("userId") || "";
   const shouldSkip = !userId || userId === "";
-  const { result, loading: queryLoading } = useQuery(GET_USER_BY_ID, {
+  const { result, loading: queryLoading } = useAuthQuery(GET_USER_BY_ID, {
     user_id: userId,
     skip: shouldSkip, // ⬅️ The key change: Skip if userId is null/empty
   });
+
   watchEffect(() => {
     if (!queryLoading.value && result.value) {
       const u = result.value.users[0];
+      console.log(u);
 
       user.value = {
         ...u,
@@ -87,6 +87,7 @@ async function changeAvatarURL(selectedFile: File) {
   const urls = await uploadToCloudinary([selectedFile]);
   const avatarUrl = urls[0];
   uploading.value = false;
+  console.log(avatarUrl, user.value);
   if (!avatarUrl)
     return;
 
@@ -97,7 +98,7 @@ async function changeAvatarURL(selectedFile: File) {
   // update db
   if (!user.value)
     return;
-  const { mutate: updateUser } = useMutation(UPDATE_USER_AVATAR_BY_ID);
+  const { run: updateUser } = useAuthMutation(UPDATE_USER_AVATAR_BY_ID);
 
   await updateUser({
     user_id: user.value.id,

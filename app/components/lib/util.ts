@@ -64,27 +64,23 @@ export function buildWhere(filter: FILTER, user_id?: string) {
   }
   if (filter.excludeIngredients && filter.excludeIngredients.length > 0) {
     where._not = {
-      recipe_ingredients: { name: { _in: filter.excludeIngredients } },
+      recipe_ingredients: {
+        ingredient: { // follow the relationship
+          name: { _in: filter.excludeIngredients },
+        },
+      },
     };
   }
   if (filter.searchTerm && filter.searchTerm.trim() !== "") {
     if (filter.searchItem === "ingredients") {
-      where.recipe_ingredients = {
-        ingredient: {
-          name: {
-            _ilike: `%${filter.searchTerm}%`,
-          },
-        },
+      where.name = {
+        _ilike: `%${filter.searchTerm}%`,
       };
     }
 
     if (filter.searchItem === "category") {
-      where.recipe_categories = {
-        category: {
-          name: {
-            _ilike: `%${filter.searchTerm}%`,
-          },
-        },
+      where.name = {
+        _ilike: `%${filter.searchTerm}%`,
       };
     }
 

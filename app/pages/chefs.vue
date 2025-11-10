@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
 
-import type { GET_CHEFS_QUERY } from "~/types/types";
+import type { GET_CHEFS_QUERY, TOTAL_CHEFS_TYPE } from "~/types/types";
 
-import { GET_CHEFS } from "~/graphql/queries";
+import { useAuthMutation } from "~/components/composeable/UseAuthMutation";
+import { useAuthQuery } from "~/components/composeable/UseAuthQuery";
+import { FOLLOW_CHEF, GET_CHEFS, TOTAL_CHEFS, UNFOLLOW_CHEF } from "~/graphql/queries";
 
 interface RECIPE {
   id: number;
@@ -23,9 +25,6 @@ interface CHEF {
   profileImage: string | null;
 }
 
-function toggleFollow(chef: any) {
-  chef.following = !chef.following;
-}
 function goToEachChefPage(index: number) {
   navigateTo(`/chef/${index}`);
 }
@@ -34,14 +33,31 @@ function goToEachRecipePage(index: number) {
 }
 const chefs = ref<CHEF[]>([]);
 const userLoading = ref(false);
+const page = ref(1);
+const itemsPerPage = ref(2);
+const totalChefs = ref(100);
+const user_id = ref<null | string>(null);
+let refetchChefs: any;
 onMounted(() => {
   const userId = localStorage.getItem("userId") || "";
-  const shouldSkip = !userId || userId === "";
+  user_id.value = userId;
   userLoading.value = true;
-  const { result } = useQuery<GET_CHEFS_QUERY>(GET_CHEFS, {
+  const { result: totalChefsRes } = useAuthQuery<TOTAL_CHEFS_TYPE>(TOTAL_CHEFS, {});
+  const { result, refetch } = useAuthQuery<GET_CHEFS_QUERY>(GET_CHEFS, {
     user_id: userId,
-    skip: shouldSkip,
+    limit: itemsPerPage,
+    offset: (page.value - 1) * itemsPerPage.value,
   });
+  refetchChefs = refetch;
+  watch(
+    totalChefsRes,
+    (value) => {
+      if (value && value.users_aggregate && value.users_aggregate.aggregate) {
+        totalChefs.value = value.users_aggregate.aggregate.count;
+      }
+    },
+    { immediate: true },
+  );
   watch(
     result,
     (value) => {
@@ -67,6 +83,37 @@ onMounted(() => {
     { immediate: true }, // 🔑 ensures it runs immediately if result.value already has data
   );
 });
+const { run: followMutate } = useAuthMutation(FOLLOW_CHEF);
+const { run: unfollowMutate } = useAuthMutation(UNFOLLOW_CHEF);
+const followLoading = ref(false);
+
+// Function to toggle follow/unfollow
+async function toggleFollow(chef: any) {
+  if (!chef.value)
+    return;
+
+  followLoading.value = true;
+
+  try {
+    if (chef.value.followed) {
+      await unfollowMutate({ follower_id: user_id.value, following_id: chef.value.id });
+      chef.value.followed = false;
+      refetchChefs();
+    }
+    else {
+      console.log({ follower_id: user_id.value, following_id: chef.value.id });
+      await followMutate({ follower_id: user_id.value, following_id: chef.value.id });
+      chef.value.followed = true;
+      refetchChefs();
+    }
+  }
+  catch (error) {
+    console.error(error);
+  }
+  finally {
+    followLoading.value = false;
+  }
+}
 </script>
 
 <template class="overflow-y-scroll">
@@ -117,5 +164,8 @@ onMounted(() => {
         </div>
       </div>
     </div>
+    <UPagination v-model:page="page" :items-per-page="itemsPerPage" active-color="primary" active-variant="subtle"
+      :total="totalChefs" class="justify-center mt-10" :ui="{ root: 'flex justify-center items-center' }"
+      @update:page="() => { refetchChefs({ offset: (page - 1) * itemsPerPage }) }" />
   </UContainer>
 </template>

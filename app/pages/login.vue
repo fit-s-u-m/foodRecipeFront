@@ -42,22 +42,29 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
       Login(credential: { username: $username, password: $password }) {
         userId
         accessToken
-        refreshToken
+        role
       }
     }
   `;
 
   const variables = { username, password };
 
-  const { mutate, onDone, onError } = useMutation(query);
+  const { mutate, onDone, onError } = useMutation(query, {
+    context: {
+      fetchOptions: {
+        credentials: "include",
+      },
+    },
+  });
   mutate(variables);
   onDone((payload) => {
+    console.log({ payload });
     const accessToken = payload.data.Login.accessToken;
-    const refreshToken = payload.data.Login.refreshToken;
     const userId = payload.data.Login.userId;
+    const role = payload.data.Login.role;
     localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
     localStorage.setItem("userId", userId);
+    localStorage.setItem("userRole", role);
     toast.add({ title: "Login Successful", description: "You have been logged in successfully.", color: "success" });
     navigateTo(("/"));
   });

@@ -3,6 +3,7 @@ import { AddRecipe, FilterRecipe } from "#components";
 import { format } from "date-fns";
 import { ref } from "vue";
 
+import { useAuthQuery } from "~/components/composeable/UseAuthQuery.js";
 import { applyRouteFilters, buildWhere } from "~/components/lib/util.js";
 // in any page or composable
 import { GET_RECIPES, TOTAL_RECIPES } from "~/graphql/queries";
@@ -52,6 +53,7 @@ interface TOTAL_RECIPES_TYPE {
 }
 let refetchRecipes: any;
 let refetchTotal: any;
+const userRole = ref<string | null>(null);
 const userId = ref<string | null>(null);
 onMounted(() => {
   const query = route.query;
@@ -59,6 +61,7 @@ onMounted(() => {
   // eslint-disable-next-line no-console
   console.log("filter on mount", filter.value);
   const user_id = localStorage.getItem("userId") || "";
+  userRole.value = localStorage.getItem("userRole");
   userId.value = user_id;
   const where = buildWhere(filter.value, user_id);
   const variables = {
@@ -69,7 +72,8 @@ onMounted(() => {
   };
 
   // Calculate the total recipepaginationVars
-  const { result: totalRecipesRes, refetch: refetch_total } = useQuery<TOTAL_RECIPES_TYPE>(TOTAL_RECIPES, { where });
+  const { result: totalRecipesRes, refetch: refetch_total } = useAuthQuery<TOTAL_RECIPES_TYPE>(TOTAL_RECIPES, { where });
+
   refetchTotal = refetch_total;
   watchEffect(() => {
     if (!totalRecipesRes.value)
@@ -77,7 +81,7 @@ onMounted(() => {
     totalRecipes.value = totalRecipesRes.value.recipes_aggregate.aggregate.count;
   });
 
-  const { result, loading: queryLoading, refetch } = useQuery<GET_RECIPES_QUERY>(GET_RECIPES, variables);
+  const { result, refetch } = useAuthQuery<GET_RECIPES_QUERY>(GET_RECIPES, variables);
 
   refetchRecipes = refetch;
   // Watch result directly
@@ -101,22 +105,16 @@ onMounted(() => {
           chef: prevRecipe.user,
           created_at: prevRecipe.created_at,
         }));
-
+        loading.value = false; // finished getting the data
         // eslint-disable-next-line no-console
         console.log("recipes", recipesFromBackEnd.value);
       }
       else {
         console.error("GraphQL query returned no data or failed.");
       }
-      loading.value = queryLoading.value;
     },
     { immediate: true },
   );
-
-  // Optional: keep reactive loading state
-  watch(queryLoading, (loadingVal) => {
-    loading.value = loadingVal;
-  });
 });
 watchEffect(() => {
   const query = route.query;
@@ -127,6 +125,7 @@ function onRecipeClicked(index: number) {
 }
 
 function onFilter(filterRecived: FILTER) {
+  console.log("applyRouteFilters", filterRecived);
   if (!userId.value)
     return;
   filter.value = filterRecived;
@@ -146,6 +145,10 @@ function trancateWords(text: string, max: number) {
 
   return `${text.substring(0, max)} ...`;
 }
+function refetchWhenAddRecipe() {
+  refetchTotal();
+  refetchRecipes();
+}
 </script>
 
 <template>
@@ -159,7 +162,7 @@ function trancateWords(text: string, max: number) {
         <!-- Filter Modal -->
         <FilterRecipe :refresh-on-filter="onFilter" />
         <!-- Add recipe -->
-        <AddRecipe />
+        <AddRecipe v-if="userRole === 'chef'" :refetch-recipes="refetchWhenAddRecipe" />
       </div>
     </div>
     <div v-if="loading" class="w-full flex justify-center items.center">

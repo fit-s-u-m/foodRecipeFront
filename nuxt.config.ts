@@ -17,9 +17,8 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
   runtimeConfig: {
-    hasuraAdminSecret: process.env.HASURA_ADMIN_SECRET, // server-only
     public: {
-      hasuraAdminSecret: process.env.HASURA_ADMIN_SECRET, // exposed to client
+      backendVerify: process.env.BACKEND_VERIFY,
       clouldinaryUploadPreset: process.env.CLOUDINARY_UPLOAD_PRESET,
       clouldinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
       clouldinaryApiKey: process.env.CLOUDINARY_API_KEY,
@@ -30,11 +29,6 @@ export default defineNuxtConfig({
     clients: {
       default: {
         httpEndpoint: "http://localhost:8080/v1/graphql",
-        httpLinkOptions: {
-          headers: {
-            "x-hasura-admin-secret": process.env.HASURA_ADMIN_SECRET, // only on server
-          },
-        },
       },
     },
   },

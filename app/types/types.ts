@@ -72,7 +72,6 @@ export interface GET_RECIPES_QUERY {
     created_at: string;
     description: string;
     featured_image: string | null;
-    id: string;
     recipe_id: number;
     prep_time_minutes: number;
     recipe_likes_aggregate: {
@@ -80,7 +79,7 @@ export interface GET_RECIPES_QUERY {
         count: number;
       };
     };
-    user: { username: string; avatar_url: string; user_id: string };
+    user: { username: string; avatar_url: string; user_id: number };
     recipe_images: { url: string }[];
     recipe_categories: { category: { name: string } }[];
     recipe_ingredients: { ingredient: { name: string } }[];
@@ -109,4 +108,13 @@ export interface GetChefResponse {
       recipe_ratings_aggregate: { aggregate: { avg: { rating: number | null } } };
     }[];
   }[];
+}
+
+export interface TOTAL_CHEFS_TYPE {
+  users_aggregate: {
+    aggregate: {
+      count: number;
+    };
+  };
+
 }

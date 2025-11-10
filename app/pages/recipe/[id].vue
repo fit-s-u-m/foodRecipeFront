@@ -3,10 +3,12 @@ import { UAvatar, UButton, UCarousel, UInput } from "#components";
 import { formatDistanceToNow } from "date-fns";
 import { onMounted, ref } from "vue";
 
+import { useAuthMutation } from "~/components/composeable/UseAuthMutation";
+import { useAuthQuery } from "~/components/composeable/UseAuthQuery";
 import { BOOKMARK_RECIPE, COMMENT_RECIPE, GET_RECIPES_BY_ID, LIKE_RECIPE, RATE_RECIPE, UNBOOKMARK_RECIPE, UNLIKE_RECIPE } from "~/graphql/queries";
 
 const route = useRoute();
-const recipeId = Number.parseInt(route.params.id);
+const recipeId = Number.parseInt(route.params.id as string);
 
 const hoverRating = ref(0);
 const newComment = ref("");
@@ -71,14 +73,14 @@ interface Recipe {
   steps: string[];
   categories: string[];
   ingredients: string[];
-  rating: number | null;
-  avgRating: number;
+  rating: number | undefined;
+  avgRating: number | null;
 }
 
 const recipe = ref<Recipe | null>(null);
-const loading = ref(true);
+const loading = ref(false);
 const recipeLoading = ref(false);
-let refechRecipe;
+let refechRecipe: any;
 const user_id = ref("");
 onMounted(() => {
   const userId = localStorage.getItem("userId") || "";
@@ -88,7 +90,7 @@ onMounted(() => {
   };
   recipeLoading.value = true;
 
-  const { result, refetch } = useQuery<RecipieResp>(GET_RECIPES_BY_ID, variables);
+  const { result, refetch } = useAuthQuery<RecipieResp>(GET_RECIPES_BY_ID, variables);
 
   user_id.value = userId;
   refechRecipe = refetch;
@@ -120,6 +122,7 @@ onMounted(() => {
       };
 
       recipeLoading.value = false;
+      // eslint-disable-next-line no-console
       console.log("recipes", recipe.value);
     }
     else {
@@ -128,12 +131,12 @@ onMounted(() => {
   }, { immediate: true });
 });
 
-const { mutate: bookmarkMutate } = useMutation(BOOKMARK_RECIPE);
-const { mutate: unbookmarkMutate } = useMutation(UNBOOKMARK_RECIPE);
-const { mutate: likeMutate } = useMutation(LIKE_RECIPE);
-const { mutate: unlikeMutate } = useMutation(UNLIKE_RECIPE);
-const { mutate: rateMutate } = useMutation(RATE_RECIPE);
-const { mutate: commentMutate } = useMutation(COMMENT_RECIPE);
+const { run: bookmarkMutate } = useAuthMutation(BOOKMARK_RECIPE);
+const { run: unbookmarkMutate } = useAuthMutation(UNBOOKMARK_RECIPE);
+const { run: likeMutate } = useAuthMutation(LIKE_RECIPE);
+const { run: unlikeMutate } = useAuthMutation(UNLIKE_RECIPE);
+const { run: rateMutate } = useAuthMutation(RATE_RECIPE);
+const { run: commentMutate } = useAuthMutation(COMMENT_RECIPE);
 
 async function setRating(star: number) {
   if (!recipe.value)
@@ -294,8 +297,9 @@ function timeAgo(dateString: string) {
         </p>
         <div class="flex justify-center items-center gap-1 mt-3">
           <div v-for="i in 5" :key="i" class="transition-transform duration-200 hover:scale-110">
-            <Icon :name="i <= Math.round(recipe.avgRating) ? 'lucide:star' : 'lucide:star-off'" class="w-6 h-6"
-              :class="i <= Math.round(recipe.avgRating) ? 'text-yellow-400' : 'text-gray-300'" />
+            <Icon :name="i <= Math.round(recipe.avgRating ? recipe.avgRating : 0) ? 'lucide:star' : 'lucide:star-off'"
+              class="w-6 h-6"
+              :class="i <= Math.round(recipe.avgRating ? recipe.avgRating : 0) ? 'text-yellow-400' : 'text-gray-300'" />
           </div>
 
           <span class="ml-2 text-lg font-semibold text-yellow-500">
@@ -312,7 +316,7 @@ function timeAgo(dateString: string) {
 
         <div v-for="comment in recipe.comments" :key="comment.id"
           class="flex space-x-3 p-4 bg-gray-100 dark:bg-gray-800 rounded-xl mb-4">
-          <UAvatar :src="comment.user.avatar_url" size="sm" />
+          <UAvatar :src="comment.user.avatar_url ? comment.user.avatar_url : ''" size="sm" />
           <div>
             <div>
               <p class="font-semibold">

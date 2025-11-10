@@ -5,8 +5,15 @@ import type { NameId } from "~/types/types";
 
 import { ADD_CATEGORY, ADD_INGREDIENT, GET_CATEGORIES, GET_INGREDIENTS, INSERT_RECIPE } from "~/graphql/queries";
 
+import SmartSelectMenu from "../components/SmartSelect.vue";
+import { useAuthMutation } from "./composeable/UseAuthMutation";
+import { useAuthQuery } from "./composeable/UseAuthQuery";
 import { uploadToCloudinary } from "./lib/util";
 
+interface Props {
+  refetchRecipes: () => void; // optional
+}
+const { refetchRecipes } = defineProps<Props>();
 interface ImagePreview {
   file: File;
   preview: string;
@@ -17,20 +24,30 @@ const images = ref<ImagePreview[]>([]);
 const newStep = ref("");
 const steps = ref<string[]>([]);
 const addStepModal = ref(false);
-
-const state = reactive({
+type FormState = z.infer<typeof schema>;
+const state = reactive<FormState>({
   time: 0,
-  ingredients: [] as string[],
-  categories: [] as string[],
-  title: "" as string,
-  description: "" as string,
+  ingredients: [],
+  categories: [],
+  title: "",
+  description: "",
 
 });
 const addRecipeModal = ref(false);
 const schema = z.object({
   time: z.number().min(1, "Time is required").max(300, "Too long"),
-  ingredients: z.array(z.string()).min(1, "At least one ingredient is required"),
-  categories: z.array(z.string("must be string")),
+  ingredients: z.array(
+    z.object({
+      label: z.string(),
+      value: z.string(),
+    }),
+  ).min(1, "At least one ingredient is required"),
+  categories: z.array(
+    z.object({
+      label: z.string(),
+      value: z.string(),
+    }),
+  ).min(1, "At least one category is required"),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
 });
@@ -38,11 +55,11 @@ const ingredientOptions = ref<NameId[]>([]);
 const ingredientsLoading = ref(true);
 const categoryOptions = ref<NameId[]>([]);
 const categoriesLoading = ref(true);
-let refetchCategory;
-let refetchIngredient;
+let refetchCategory: any;
+let refetchIngredient: any;
 onMounted(() => {
-  const { result: ingredientsRes, loading: ingredientsLoadingRes, refetch: refetchIng } = useQuery(GET_INGREDIENTS);
-  const { result: categoriesRes, loading: categoriesLoadingRes, refetch: refetchCat } = useQuery(GET_CATEGORIES);
+  const { result: ingredientsRes, loading: ingredientsLoadingRes, refetch: refetchIng } = useAuthQuery(GET_INGREDIENTS, { limit: 3 });
+  const { result: categoriesRes, loading: categoriesLoadingRes, refetch: refetchCat } = useAuthQuery(GET_CATEGORIES, { limit: 3 });
   refetchCategory = refetchCat;
   refetchIngredient = refetchIng;
   watchEffect(() => {
@@ -76,9 +93,9 @@ function getId(items: NameId[], list: string[]): string[] {
 async function onSubmit(event: any) {
   submitingData.value = true;
   const urls = await uploadToCloudinary(images.value.map(img => img.file));
-  const { mutate } = useMutation(INSERT_RECIPE);
+  const { run: mutate } = useAuthMutation(INSERT_RECIPE);
   const userId = localStorage.getItem("userId") || "";
-  const ingredientsId = getId(ingredientOptions.value, state.ingredients);
+  const ingredientsId = getId(ingredientOptions.value, state.ingredients.map(i => i.value));
   const categoriesId = getId(categoryOptions.value, state.categories);
 
   const recipeImages = urls.map(url => ({ url }));
@@ -88,6 +105,7 @@ async function onSubmit(event: any) {
   mutate({
     user_id: userId,
     title: state.title,
+    featured_image: urls[0] ?? null,
     description: state.description,
     prep_time_minutes: state.time,
     images: recipeImages,
@@ -99,6 +117,9 @@ async function onSubmit(event: any) {
   // eslint-disable-next-line no-console
   console.log("Form data ✅", event, event.data, images.value, steps);
   submitingData.value = false;
+  steps.value = [];
+  images.value = [];
+  refetchRecipes();
   addRecipeModal.value = false;
 }
 function removeImage(index: number) {
@@ -115,24 +136,8 @@ function addStep() {
 function removeStep(index: number) {
   steps.value.splice(index, 1);
 }
-const newIngredient = ref<string | null>(null);
-const addIngredientModal = ref(false);
-const { mutate: addIngredientMutate } = useMutation(ADD_INGREDIENT);
-async function addIngredient() {
-  await addIngredientMutate({ name: newIngredient.value });
-  refetchIngredient();
-  newIngredient.value = null;
-  addIngredientModal.value = false;
-}
-const newCategory = ref<string | null>(null);
-const addCategoryModal = ref(false);
-const { mutate: addCategoryMutate } = useMutation(ADD_CATEGORY);
-async function addCategory() {
-  await addCategoryMutate({ name: newCategory.value });
-  refetchCategory();
-  newCategory.value = null;
-  addCategoryModal.value = false;
-}
+const { run: addIngredientMutate } = useAuthMutation(ADD_INGREDIENT);
+const { run: addCategoryMutate } = useAuthMutation(ADD_CATEGORY);
 </script>
 
 <!-- add recipe -->
@@ -173,47 +178,20 @@ async function addCategory() {
         <!-- ingredient -->
         <UFormField label="Ingredients" name="ingredients">
           <div class="flex gap-3">
-            <UInputMenu v-model="state.ingredients" icon="i-lucide-list" multiple
-              :items="ingredientOptions.map(i => i.name)" placeholder="ingredients" />
-            <UButton size="xs" color="neutral" variant="outline" class="cursor-pointer" description="add ingredients"
-              @click="addIngredientModal = true">
-              +
-            </UButton>
+            <SmartSelectMenu v-model="state.ingredients"
+              :items="ingredientOptions.map(i => ({ label: i.name, value: i.id }))" :fetch-fn="refetchIngredient"
+              :create-fn="addIngredientMutate" search-item="ingredients" />
           </div>
         </UFormField>
-
-        <UModal v-model:open="addIngredientModal" title="Add ingredient" :ui="{ footer: 'justify-end' }">
-          <template #body>
-            <UTextarea v-model="newIngredient" placeholder="ingredient to add" :rows="1" class="w-full" highlight
-              aria-autocomplete="both" />
-          </template>
-          <template #footer>
-            <UButton color="primary" label="Add" @click="addIngredient" />
-          </template>
-        </UModal>
 
         <!-- category  -->
         <UFormField label="Categories" name="categories">
           <div class="flex gap-3">
-            <UInputMenu v-model="state.categories" icon="i-lucide-layout-list" multiple
-              :items="categoryOptions.map(i => i.name)" value-attribute="id" label-attribute="name"
-              placeholder="category" />
-            <UButton size="xs" color="neutral" variant="outline" class="cursor-pointer" description="add category"
-              @click="addCategoryModal = true">
-              +
-            </UButton>
+            <SmartSelectMenu v-model="state.categories"
+              :items="categoryOptions.map(i => ({ label: i.name, value: i.id }))" :fetch-fn="refetchCategory"
+              :create-fn="addCategoryMutate" search-item="category" />
           </div>
         </UFormField>
-
-        <UModal v-model:open="addCategoryModal" title="Add Categories" :ui="{ footer: 'justify-end' }">
-          <template #body>
-            <UTextarea v-model="newCategory" placeholder="Category to add" :rows="1" class="w-full" highlight
-              aria-autocomplete="both" />
-          </template>
-          <template #footer>
-            <UButton color="primary" label="Add" @click="addCategory" />
-          </template>
-        </UModal>
 
         <UFormField label="Images" name="images">
           <UInput type="file" multiple accept="image/*" @change="handleImagesSelect" />

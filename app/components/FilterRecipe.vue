@@ -3,6 +3,8 @@ import { GET_CATEGORIES, GET_INGREDIENTS } from "~/graphql/queries.js";
 
 import type { FILTER, NameId } from "../types/types.ts";
 
+import SmartSelectMenu from "../components/SmartSelect.vue";
+
 interface Props {
   refreshOnFilter: (fillter: FILTER) => void; // optional
 }
@@ -43,10 +45,26 @@ const ingredientOptions = ref<NameId[]>([]);
 const ingredientsLoading = ref(true);
 const categoryOptions = ref<NameId[]>([]);
 const categoriesLoading = ref(true);
+let refetchIngredient: any;
+let refetchCategory: any;
 onMounted(() => {
-  const { result: ingredientsRes, loading: ingredientsLoadingRes } = useQuery(GET_INGREDIENTS);
-  const { result: categoriesRes, loading: categoriesLoadingRes } = useQuery(GET_CATEGORIES);
+  const accessToken = localStorage.getItem("accessToken") || "";
+  const context = {
+    context: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  };
+
+  const { result: ingredientsRes, refetch: refetchIng, loading: ingredientsLoadingRes } = useQuery(GET_INGREDIENTS, { limit: 3 }, context);
+  const { result: categoriesRes, refetch: refetchCat, loading: categoriesLoadingRes } = useQuery(GET_CATEGORIES, { limit: 3 }, context);
   const query = route.query;
+
+  // assigning refetches
+  refetchCategory = refetchCat;
+  refetchIngredient = refetchIng;
+
   filters.value = {
     bookmarked: !!query.bookmarked,
     prepTime: query.prepTime ? query.prepTime : [2, 300],
@@ -64,14 +82,30 @@ onMounted(() => {
 
   watchEffect(() => {
     if (!ingredientsLoadingRes.value && ingredientsRes.value) {
-      ingredientOptions.value = ingredientsRes.value.ingredients.map(i => i.name);
+      ingredientOptions.value = ingredientsRes.value.ingredients;
       ingredientsLoading.value = false;
     }
     if (!categoriesLoadingRes.value && categoriesRes.value) {
-      categoryOptions.value = categoriesRes.value.categories.map(i => i.name);
+      categoryOptions.value = categoriesRes.value.categories;
       categoriesLoading.value = false;
     }
   });
+});
+const selectedCategories = computed({
+  get() {
+    return filters.value.categories.map(c => ({ label: c, value: c }));
+  },
+  set(newVal) {
+    filters.value.categories = newVal.map(v => v.label);
+  },
+});
+const selectedIngredients = computed({
+  get() {
+    return filters.value.excludeIngredients.map(c => ({ label: c, value: c }));
+  },
+  set(newVal) {
+    filters.value.excludeIngredients = newVal.map(v => v.label);
+  },
 });
 function onFilter(filter: FILTER) {
   router.replace({
@@ -100,8 +134,9 @@ function onFilter(filter: FILTER) {
           <h3 class="font-semibold text-lg mb-2">
             Exclude Ingredients
           </h3>
-          <UInputMenu v-model="filters.excludeIngredients" icon="i-lucide-circle-slash" multiple
-            :items="ingredientOptions" placeholder="" />
+          <SmartSelectMenu v-model="selectedIngredients" icon="i-lucide-circle-slash" class="w-full"
+            :items="ingredientOptions.map(i => ({ label: i.name, value: i.id }))" :fetch-fn="refetchIngredient"
+            search-item="ingredients" />
 
           <p class="text-xs text-gray-500 mt-1">
             Add ingredients you want to avoid (for allergies or dislikes)
@@ -109,12 +144,13 @@ function onFilter(filter: FILTER) {
         </div>
 
         <!-- Category -->
-        <div>
+        <div class="my-3">
           <h3 class="font-semibold text-lg mb-2">
             Category
           </h3>
-          <UInputMenu v-model="filters.categories" icon="i-lucide-layout-list" multiple :items="categoryOptions"
-            placeholder="Select Category" />
+          <SmartSelectMenu v-model="selectedCategories" icon="i-lucide-layout-list" class="w-full"
+            :items="categoryOptions.map(i => ({ label: i.name, value: i.id }))" :fetch-fn="refetchCategory"
+            search-item="category" />
         </div>
 
         <!-- Preparation Time -->

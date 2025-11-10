@@ -17,6 +17,13 @@ const fields: AuthFormField[] = [
     required: true,
   },
   {
+    name: "role",
+    type: "select",
+    label: "Role",
+    items: ["chef", "customer"],
+    required: true,
+  },
+  {
     name: "username",
     type: "text",
     label: "User Name",
@@ -37,41 +44,29 @@ const fields: AuthFormField[] = [
   },
 ];
 
-const providers = [{
-  label: "Google",
-  icon: "i-simple-icons-google",
-  onClick: () => {
-    toast.add({ title: "Google", description: "Signup with Google" });
-  },
-}, {
-  label: "GitHub",
-  icon: "i-simple-icons-github",
-  onClick: () => {
-    toast.add({ title: "GitHub", description: "Signup with GitHub" });
-  },
-}];
-
 const schema = z.object({
   email: z.email("Invalid email"),
   password: z.string("Password is required").min(8, "Must be at least 8 characters"),
   username: z.string("Username is required").min(3, "Must be at least 3 characters"),
+  role: z.enum(["chef", "customer"]),
 });
 
 type Schema = z.output<typeof schema>;
 
 function onSubmit(payload: FormSubmitEvent<Schema>) {
+  // eslint-disable-next-line no-console
   console.log(payload.data);
   const email = payload.data.email;
   const password = payload.data.password;
   const username = payload.data.username;
+  const role = payload.data.role;
   const query = gql`
-  mutation SignUp($email: String!, $password: String!, $username: String!) {
-    createUser(credential: { email: $email, password: $password, username: $username }) {
-      accessToken
+  mutation SignUp($email: String!, $password: String!, $username: String!, $role: String!) {
+    createUser(credential: { email: $email, password: $password, username: $username ,role: $role}) {
       email
       id
-      refreshToken
       username
+      role
     }
   }
 `;
@@ -79,6 +74,7 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
     email,
     password,
     username,
+    role,
   };
 
   const { mutate, onDone, onError } = useMutation(query);
@@ -90,7 +86,7 @@ function onSubmit(payload: FormSubmitEvent<Schema>) {
     localStorage.setItem("refreshToken", data.refreshToken);
     toast.add({ title: "Success", description: "Account created successfully" });
 
-    navigateTo("/");
+    navigateTo("/login");
   });
   onError((error) => {
     console.error(error);
